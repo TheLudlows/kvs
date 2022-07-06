@@ -10,7 +10,7 @@ uuid = { version = "0.8", features = ["v4"] }
 # rusty-leveldb = "0.3.6"
 leveldb = "0.8"
 db-key = "0.0.5"
-warp = "0.3"
+warp = "0.3.2"
 tokio = {version = "1",features = ["fs", "sync", "time","macros","rt-multi-thread","process"]}
 log = "0.4"
 log4rs = {version = "1.0"}
@@ -27,7 +27,6 @@ reqwest = { version = "0.11", default-features = false, features = ["json","stre
 ringbuffer = "0.8.4"
 dashmap = "5.3.4"
 tempfile = "3.0.7"
-
 [dev-dependencies]
 reqwest = { version = "0.11", features = ["blocking","json"] }
 

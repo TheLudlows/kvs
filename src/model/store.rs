@@ -12,6 +12,7 @@ use crate::model::key::MyKey;
 use crate::model::evn::*;
 use crate::model::request::*;
 
+
 #[derive(Debug, Clone)]
 pub struct Kv {
     map: DashMap<MyKey, Vec<u8>>,
@@ -21,8 +22,8 @@ pub struct Kv {
 pub struct ZSet {
     map: DashMap<String, SortValues>,
 }
-#[derive(Debug, Clone)]
 
+#[derive(Debug, Clone)]
 struct SortValues {
     score_map: BTreeMap<u32, String>,
     value_map: HashMap<String, u32>
@@ -87,7 +88,9 @@ impl Kv {
         if !pb.exists() {
            pb = PathBuf::from(LEVEL_DB_ONLINE_PATH);
         }
-        let mut database: Database<MyKey> = Database::open(pb.as_path(), Options::new()).unwrap();
+        let mut op = Options::new();
+        op.create_if_missing = true;
+        let mut database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
         let mut it = database.iter(ReadOptions::new());
         while let Some((k, v)) = it.next() {
             self.map.insert(k, v);
@@ -97,7 +100,7 @@ impl Kv {
 
     pub fn insert(&self, k: String, v: String) {
         self.map.insert(MyKey::from_string(k), v.into_bytes());
-        info!("map size {}", self.map.len());
+        //info!("map size {}", self.map.len());
     }
 
     pub fn del(&self, k: String) {

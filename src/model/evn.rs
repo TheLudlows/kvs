@@ -2,4 +2,7 @@
 
 pub static LEVEL_DB_PATH: &str = "/Users/liuchao/data/";
 
-pub static LEVEL_DB_ONLINE_PATH: &str = "/data/";
+pub static LEVEL_DB_ONLINE_PATH: &str = "/data";
+
+pub const SHARD_NUM : usize = 16;
+

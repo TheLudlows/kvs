@@ -11,27 +11,38 @@ use crate::model::*;
 use crate::model::request::*;
 
 pub use model::*;
+use crate::evn::SHARD_NUM;
+use crate::store::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Kv::new());
     let zset = Arc::new(ZSet::new());
 
+    let mut vec = Vec::new();
+    for _ in 0..16 {
+        vec.push(ZSet::new());
+    }
+
+    let read_only_arr = Arc::new(vec);
+
+
+    let zset_arr = warp::any().map(move || read_only_arr.clone());
+
     kv.load_from_file();
     let share_kv = warp::any().map(move || kv.clone());
     let share_zset = warp::any().map(move || zset.clone());
 
 
-
     init_file("./log4rs.yml", Default::default())?;
-    let init_route = warp::path("init").map(|| {
+    let init_route = warp::get().and(warp::path("init")).map(|| {
         return format!("ok");
     });
     let query = warp::path("query")
         .and(warp::path::param::<String>())
         .and(share_kv.clone())
         .and_then(|k, kv: Arc<Kv>| {
-            info!("query {:?}", k);
+            //info!("query {:?}", k);
             let resp = match kv.get(k) {
                 None => {
                     Err(warp::reject::not_found())
@@ -47,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let add = warp::path("add")
         .and(warp::body::json())
         .and(share_kv.clone())
-        .map(|req: InsrtRequest,  kv: Arc<Kv>| {
+        .map(|req: InsrtRequest, kv: Arc<Kv>| {
             kv.insert(req.key, req.value);
             return warp::reply::reply();
         });
@@ -55,8 +66,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let del = warp::path("del")
         .and(warp::path::param::<String>())
         .and(share_kv.clone())
-        .map(|k,  kv: Arc<Kv>| {
-            info!("del key{:?}", k);
+        .map(|k, kv: Arc<Kv>| {
+            //info!("del key{:?}", k);
             kv.del(k);
             return warp::reply::reply();
         });
@@ -64,7 +75,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let list = warp::path("list")
         .and(warp::body::json())
         .and(share_kv.clone())
-        .map(|keys: Vec<String>,  kv: Arc<Kv>| {
+        .map(|keys: Vec<String>, kv: Arc<Kv>| {
             warp::reply::json(&kv.list(keys))
         });
 
@@ -72,7 +83,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::body::json())
         .and(share_kv.clone())
         .map(|vs: Vec<InsrtRequest>, kv: Arc<Kv>| {
-            info!("{:?}", vs);
+            //info!("{:?}", vs);
             kv.batch_insert(vs);
             return warp::reply();
         });
@@ -81,20 +92,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zadd = warp::path("zadd")
         .and(warp::path::param::<String>())
         .and(warp::body::json())
-        .and(share_zset.clone())
-        .map(|k: String, v: ScoreValue, zset:Arc<ZSet>| {
-            info!("{:?}{:?}",k, v);
-            zset.insert(k,v);
+        .and(zset_arr.clone())
+        .map(|k: String, v: ScoreValue, zset: Arc<Vec<ZSet>>| {
+            //info!("{:?}{:?}",k, v);
+            zset[shard_idx(&k)].insert(k, v);
             return warp::reply();
         });
 
     let zrange = warp::path("zrange")
         .and(warp::path::param::<String>())
         .and(warp::body::json())
-        .and(share_zset.clone())
-        .map(|k: String, range: ScoreRange, zset:Arc<ZSet>| {
-            let res = zset.range(&k,range.clone());
-            info!("zrange{:?} {:?} {:?}", k, range, res);
+        .and(zset_arr.clone())
+        .map(|k: String, range: ScoreRange, zset: Arc<Vec<ZSet>>| {
+            let res = zset[shard_idx(&k)].range(&k, range.clone());
+            //info!("zrange{:?} {:?} {:?}", k, range, res);
             warp::reply::json(&res)
         });
 
@@ -102,10 +113,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zrmv = warp::path("zrmv")
         .and(warp::path::param::<String>())
         .and(warp::path::param::<String>())
-        .and(share_zset.clone())
-        .map(|k: String, v: String, zset:Arc<ZSet>| {
-            info!("{:?}{:?}",k, v);
-            zset.remove(&k,&v);
+        .and(zset_arr.clone())
+        .map(|k: String, v: String, zset: Arc<Vec<ZSet>>| {
+            //info!("{:?}{:?}",k, v);
+            zset[shard_idx(&k)].remove(&k, &v);
             return warp::reply();
         });
 
@@ -135,4 +146,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     thread.await?;
     Ok(())
+}
+
+#[inline]
+pub fn shard_idx(s: &String) -> usize{
+    if s.len() == 0 {
+        return 0;
+    }
+    (s.as_bytes()[0] as usize % SHARD_NUM)
 }
