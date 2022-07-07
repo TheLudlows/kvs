@@ -43,7 +43,7 @@ impl ZSet {
     pub fn new() -> Self {
         let mut vec = Vec::new();
         for _ in 0..SHARD_NUM {
-            vec.push(DashMap::new());
+            vec.push(DashMap::with_capacity(DEFAULT_SIZE));
         }
         Self {
             map_arr:vec
@@ -89,7 +89,7 @@ impl Kv {
     pub fn new() -> Kv {
         let mut vec = Vec::new();
         for _ in 0..SHARD_NUM {
-            vec.push(DashMap::new());
+            vec.push(DashMap::with_capacity(DEFAULT_SIZE));
         }
         Self {
             map_arr:vec

@@ -1,6 +1,4 @@
 mod model;
-
-
 use std::{collections::HashMap, thread};
 use std::sync::Arc;
 use log::info;
@@ -14,6 +12,8 @@ pub use model::*;
 use crate::evn::SHARD_NUM;
 use crate::store::*;
 
+#[global_allocator]
+static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Kv::new());
@@ -28,6 +28,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let init_route = warp::get().and(warp::path("init")).map(|| {
         return format!("ok");
     });
+
     let query = warp::path("query")
         .and(warp::path::param::<String>())
         .and(kv.clone())
