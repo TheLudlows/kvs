@@ -1,13 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
-use std::path::{Path, PathBuf};
-use std::str::from_utf8;
+use std::path::{PathBuf};
+use chashmap::CHashMap;
 
 use dashmap::DashMap;
 use leveldb::database::Database;
 use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
-use log::{info, log};
-use tempfile::TempDir;
+use log::{info};
 use crate::model::key::MyKey;
 use crate::model::evn::*;
 use crate::model::request::*;
@@ -26,14 +25,14 @@ pub struct ZSet {
 #[derive(Debug, Clone)]
 struct SortValues {
     score_map: BTreeMap<u32, String>,
-    value_map: HashMap<String, u32>
+    value_map: HashMap<String, u32>,
 }
 
-impl SortValues{
+impl SortValues {
     pub fn new() -> Self {
-        Self{
+        Self {
             score_map: Default::default(),
-            value_map: Default::default()
+            value_map: Default::default(),
         }
     }
 }
@@ -46,13 +45,28 @@ impl ZSet {
             vec.push(DashMap::with_capacity(DEFAULT_SIZE));
         }
         Self {
-            map_arr:vec
+            map_arr: vec
         }
     }
 
     pub fn insert(&self, k: String, v: ScoreValue) {
-
         let map = &self.map_arr[shard_idx(&k)];
+
+       /* map.alter(k, |value| {
+            let mut score = match value {
+                Some(v) => {
+                    v
+                }
+                None => {
+                    SortValues::new()
+                }
+            };
+            score.score_map.insert(v.score, v.value.clone());
+            score.value_map.insert(v.value, v.score);
+            Some(score)
+        });*/
+
+
         let mut e = map.entry(k.clone()).or_insert_with(|| SortValues::new());
 
         if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
@@ -63,7 +77,7 @@ impl ZSet {
         }
     }
 
-    pub fn range(&self, k:&String, range: ScoreRange) -> Vec<ScoreValue> {
+    pub fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
         let map = &self.map_arr[shard_idx(&k)];
 
         let mut ret = Vec::new();
@@ -73,11 +87,23 @@ impl ZSet {
             }
         }
         ret
-
     }
 
     pub fn remove(&self, k: &String, v: &String) {
         let map = &self.map_arr[shard_idx(&k)];
+        /*map.alter(k.to_string(), |value| {
+            match value {
+                None => {
+                    None
+                }
+                Some(mut score_values) => {
+                    if let Some(score) = score_values.value_map.remove(v) {
+                        score_values.score_map.remove(&score);
+                    }
+                    Some(score_values)
+                }
+            }
+        });*/
         let mut e = map.entry(k.clone()).or_insert_with(|| SortValues::new());
         if let Some(v) = &e.value_map.remove(v) {
             &e.score_map.remove(v);
@@ -89,21 +115,21 @@ impl Kv {
     pub fn new() -> Kv {
         let mut vec = Vec::new();
         for _ in 0..SHARD_NUM {
-            vec.push(DashMap::with_capacity(DEFAULT_SIZE));
+            vec.push(DashMap::with_capacity(DEFAULT_KV_SIZE));
         }
         Self {
-            map_arr:vec
+            map_arr: vec
         }
     }
 
     pub fn load_from_file(&self) {
         let mut pb = PathBuf::from(LEVEL_DB_PATH);
         if !pb.exists() {
-           pb = PathBuf::from(LEVEL_DB_ONLINE_PATH);
+            pb = PathBuf::from(LEVEL_DB_ONLINE_PATH);
         }
         let mut op = Options::new();
         op.create_if_missing = true;
-        let mut database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
+        let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
         let mut it = database.iter(ReadOptions::new());
         while let Some((k, v)) = it.next() {
             self.insert(k.0, String::from_utf8(v).unwrap());
@@ -113,19 +139,20 @@ impl Kv {
 
     #[inline]
     pub fn insert(&self, k: String, v: String) {
-        &self.map_arr[shard_idx(&k)].insert(k, v);
+        self.map_arr[shard_idx(&k)].insert(k, v);
         //info!("map size {}", self.map.len());
     }
 
     #[inline]
     pub fn del(&self, k: String) {
-        &self.map_arr[shard_idx(&k)].remove(&k);
+        self.map_arr[shard_idx(&k)].remove(&k);
     }
 
     #[inline]
     pub fn get(&self, k: &String) -> Option<String> {
         (&self.map_arr[shard_idx(&k)]).get(k)
-            .map(|e| e.value().to_string())
+            //.map(|e| e.value().to_string())
+            .map(|e| e.to_string())
     }
     #[inline]
     pub fn list(&self, keys: Vec<String>) -> Vec<InsrtRequest> {
@@ -150,7 +177,7 @@ impl Kv {
 }
 
 #[test]
-fn test_load_level_db(){
+fn test_load_level_db() {
     let kv = Kv::new();
     kv.load_from_file();
 }

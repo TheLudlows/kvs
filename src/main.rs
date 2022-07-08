@@ -1,19 +1,21 @@
 mod model;
-use std::{collections::HashMap, thread};
+use std::thread;
 use std::sync::Arc;
 use log::info;
 use warp::Filter;
 use log4rs::init_file;
 use signal_hook::{consts::SIGTERM, iterator::Signals};
-use crate::model::*;
 use crate::model::request::*;
 
 pub use model::*;
-use crate::evn::SHARD_NUM;
 use crate::store::*;
+
+const EMPTY_STRING: String = String::new();
+
 
 #[global_allocator]
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Kv::new());
@@ -24,17 +26,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zset = warp::any().map(move || zset.clone());
 
 
-    init_file("./log4rs.yml", Default::default())?;
+    //init_file("./log4rs.yml", Default::default())?;
     let init_route = warp::get().and(warp::path("init")).map(|| {
         return format!("ok");
     });
 
-    let query = warp::path("query")
+    let query = warp::get().and(warp::path("query"))
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .and_then(|k, kv: Arc<Kv>| {
+        .map(|k, kv: Arc<Kv>| {
             //info!("query {:?}", k);
-            let resp = match kv.get(&k) {
+           /* let resp = match kv.get(&k) {
                 None => {
                     Err(warp::reject::not_found())
                 }
@@ -42,7 +44,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Ok(v)
                 }
             };
-            async move { resp }
+            async move { resp }*/
+            match kv.get(&k) {
+                None => {EMPTY_STRING}
+                Some(v) => {v}
+            }
         });
 
 
@@ -94,16 +100,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::body::json())
         .and(zset.clone())
-        .and_then(|k: String, range: ScoreRange, zset: Arc<ZSet>| {
+        .map(|k: String, range: ScoreRange, zset: Arc<ZSet>| {
             let res = zset.range(&k, range.clone());
             //info!("zrange{:?} {:?} {:?}", k, range, res);
-            async move {
+           /* async move {
                 if res.len() == 0 {
                     Err(warp::reject::not_found())
                 } else {
                     Ok(warp::reply::json(&res))
                 }
-            }
+            }*/
+            warp::reply::json(&res)
         });
 
 

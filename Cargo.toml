@@ -28,6 +28,8 @@ ringbuffer = "0.8.4"
 dashmap = "5.3.4"
 tempfile = "3.0.7"
 jemallocator = "0.5"
+chashmap = "2.2.2"
+fasthash = "0.4"
 
 [dev-dependencies]
 chrono="0.4.19"
