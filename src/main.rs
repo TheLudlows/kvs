@@ -64,7 +64,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(kv.clone())
         .map(|k, kv: Arc<Kv>| {
             //info!("del key{:?}", k);
-            kv.del(k);
+            kv.del(&k);
             return warp::reply::reply();
         });
 
@@ -100,7 +100,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::body::json())
         .and(zset.clone())
         .map(|k: String, range: ScoreRange, zset: Arc<ZSet>| {
-            let res = zset.range(&k, range.clone());
+            let res = zset.range(&k, range);
             //info!("zrange{:?} {:?} {:?}", k, range, res);
            /* async move {
                 if res.len() == 0 {

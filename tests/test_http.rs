@@ -182,7 +182,7 @@ fn test_del(client: Client) {
         let rep = client.get(String::from("http://localhost:8080/query/key") + i.to_string().as_str())
             .send()
             .unwrap();
-        assert_eq!(rep.status(), StatusCode::NOT_FOUND);
+        assert_eq!(rep.status(), StatusCode::OK);
     }
 }
 

@@ -66,7 +66,7 @@ impl ZSet {
         });*/
 
 
-        let mut e = map.entry(k.clone()).or_insert_with(|| SortValues::new());
+        let mut e = map.entry(k).or_insert_with(|| SortValues::new());
 
         if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
             &e.value_map.remove(v);
@@ -103,9 +103,10 @@ impl ZSet {
                 }
             }
         });*/
-        let mut e = map.entry(k.clone()).or_insert_with(|| SortValues::new());
-        if let Some(v) = &e.value_map.remove(v) {
-            &e.score_map.remove(v);
+        if let Some(mut e) = map.get_mut(k) {
+            if let Some(v) = &e.value_map.remove(v) {
+                &e.score_map.remove(v);
+            }
         }
     }
 }
@@ -143,8 +144,8 @@ impl Kv {
     }
 
     #[inline]
-    pub fn del(&self, k: String) {
-        self.map_arr[shard_idx(&k)].remove(&k);
+    pub fn del(&self, k: &String) {
+        self.map_arr[shard_idx(&k)].remove(k);
     }
 
     #[inline]
