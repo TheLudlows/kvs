@@ -16,17 +16,16 @@ const EMPTY_STRING: String = String::new();
 #[global_allocator]
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
-#[tokio::main]
+#[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Kv::new());
     let zset = Arc::new(ZSet::new());
-
+    init_file("./log4rs.yml", Default::default())?;
     kv.load_from_file();
     let kv = warp::any().map(move || kv.clone());
     let zset = warp::any().map(move || zset.clone());
 
 
-    //init_file("./log4rs.yml", Default::default())?;
     let init_route = warp::get().and(warp::path("init")).map(|| {
         return format!("ok");
     });
@@ -131,6 +130,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
     let (_, server) = warp::serve(apis)
+        .unstable_pipeline()
         .bind_with_graceful_shutdown(([0, 0, 0, 0], 8080), async move {
             info!("rust server started");
             rx.recv().await;

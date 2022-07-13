@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{PathBuf};
-use chashmap::CHashMap;
 
 use dashmap::DashMap;
 use leveldb::database::Database;

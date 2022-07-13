@@ -4,7 +4,6 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::{Duration, SystemTime};
-use chashmap::CHashMap;
 use chrono::Local;
 use dashmap::DashMap;
 use flatbuffers::Push;
@@ -183,7 +182,7 @@ fn test_del(client: Client) {
         let rep = client.get(String::from("http://localhost:8080/query/key") + i.to_string().as_str())
             .send()
             .unwrap();
-        assert_eq!(rep.status(), StatusCode::OK);
+        assert_eq!(rep.status(), StatusCode::NOT_FOUND);
     }
 }
 
@@ -262,68 +261,6 @@ fn test_rmv(client: Client) {
 }
 
 pub fn join_all(js: Vec<JoinHandle<()>>) {
-    for j in js {
-        j.join().unwrap();
-    }
-}
-
-#[test]
-fn test_alter() {
-    let map:Arc<CHashMap<String,Vec<String>>> = Arc::new(CHashMap::new());
-    let mut js = Vec::with_capacity(8);
-    for i in 0..8 {
-        let map = map.clone();
-        js.push(thread::spawn(move || {
-            let mut count = 10000;
-            while count >= 0 {
-                /*map.entry(count.to_string()).or_insert_with(|| Vec::new());
-                map.alter(&count.to_string(), |k, mut v| {
-                    v.push(i.to_string());
-                    return v;
-                });*/
-
-                map.alter(count.to_string(),|v| {
-                    match v {
-                        Some(mut value) => {
-                            value.push(i.to_string());
-                            Some(value)
-                        }
-                        None => {
-                            let mut v = vec![];
-                            v.push(i.to_string());
-                            Some(v)
-                        }
-                    }
-                });
-                count -= 1;
-            }
-        }));
-    }
-
-    for j in js {
-        j.join().unwrap();
-    }
-
-    js = Vec::new();
-    for i in 0..8 {
-        let map = map.clone();
-        js.push(thread::spawn(move || {
-            let mut count = 10000;
-            while count >= 0 {
-                match map.get(&count.to_string()) {
-                    None => {
-                        println!("count {} empty", count)
-                    }
-                    Some(v) => {
-                        if v.len() != 8 {
-                            println!("count {} len err", count)
-                        }
-                    }
-                }
-                count -= 1;
-            }
-        }));
-    }
     for j in js {
         j.join().unwrap();
     }
