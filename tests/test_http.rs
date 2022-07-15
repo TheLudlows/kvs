@@ -7,8 +7,8 @@ use std::time::{Duration, SystemTime};
 use chrono::Local;
 use dashmap::DashMap;
 use flatbuffers::Push;
-use http::StatusCode;
 use reqwest::blocking::Client;
+use reqwest::StatusCode;
 use tokio::time;
 
 use kvs::model::request::*;
@@ -264,4 +264,14 @@ pub fn join_all(js: Vec<JoinHandle<()>>) {
     for j in js {
         j.join().unwrap();
     }
+}
+
+#[test]
+fn test_map() {
+    let map = DashMap::with_capacity(4);
+    for i in 0..10 {
+        map.insert(i,i);
+    }
+    map.remove(&0);
+    println!("{:?}", map);
 }

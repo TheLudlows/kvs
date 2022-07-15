@@ -49,8 +49,7 @@ impl ZSet {
     }
 
     pub fn insert(&self, k: String, v: ScoreValue) {
-        let map = &self.map_arr[shard_idx(&k)];
-
+        let mut map = &self.map_arr[shard_idx(&k)];
        /* map.alter(k, |value| {
             let mut score = match value {
                 Some(v) => {

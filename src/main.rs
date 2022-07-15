@@ -13,8 +13,8 @@ use crate::store::*;
 const EMPTY_STRING: String = String::new();
 
 
-#[global_allocator]
-static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+//#[global_allocator]
+//static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -34,7 +34,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(kv.clone())
         .map(|k, kv: Arc<Kv>| {
-            //info!("query {:?}", k);
            /* let resp = match kv.get(&k) {
                 None => {
                     Err(warp::reject::not_found())
