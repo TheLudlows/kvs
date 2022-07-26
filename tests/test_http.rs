@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicI32, Ordering};
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::{Duration, SystemTime};
+use bytes::Bytes;
 use chrono::Local;
 use dashmap::DashMap;
 use flatbuffers::Push;
@@ -75,7 +76,7 @@ fn test_add(client: Client) {
                 if i < 0 {
                     break;
                 }
-                let req = InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string());
+                let req = InsrtRequest::new(Bytes::from("key".to_string() + &i.to_string()), Bytes::from("val".to_string() + &i.to_string()));
                 let rep = client.post("http://localhost:8080/add")
                     .json(&req)
                     .send()
@@ -157,7 +158,7 @@ fn test_batch(client: Client) {
                 }
                 let mut v = vec![];
                 for i in n..n + 10 {
-                    v.push(InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string()));
+                    v.push(InsrtRequest::new(Bytes::from("key".to_string() + &i.to_string()), Bytes::from("val".to_string() + &i.to_string())));
                 }
                 let rep = client.post(String::from("http://localhost:8080/batch"))
                     .json(&v)

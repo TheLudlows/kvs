@@ -11,12 +11,12 @@ pub const DEFAULT_KV_SIZE: usize = 1024 * 32;
 
 
 #[inline]
-pub fn shard_idx(s: &String) -> usize {
+pub fn shard_idx(s: &[u8]) -> usize {
     if s.len() == 0 {
         return 0;
     }
 
     //fasthash::xx::hash32(s) as usize % SHARD_NUM
 
-    s.as_bytes()[s.len() - 1] as usize % SHARD_NUM
+    s[s.len() - 1] as usize % SHARD_NUM
 }

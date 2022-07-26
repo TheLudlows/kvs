@@ -1,22 +1,24 @@
 mod model;
 use std::thread;
 use std::sync::Arc;
+use bytes::Bytes;
 use log::info;
-use warp::Filter;
+use warp::{Filter};
 use log4rs::init_file;
 use signal_hook::{consts::SIGTERM, iterator::Signals};
+use warp::http::{Response};
+use warp::hyper::Body;
 use crate::model::request::*;
 
 pub use model::*;
 use crate::store::*;
 
-const EMPTY_STRING: String = String::new();
-
 
 //#[global_allocator]
 //static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
-#[tokio::main(worker_threads = 16)]
+//#[tokio::main(worker_threads = 16)]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Kv::new());
     let zset = Arc::new(ZSet::new());
@@ -43,9 +45,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             };
             async move { resp }*/
+            let k = Bytes::from(k);
             match kv.get(&k) {
-                None => {EMPTY_STRING}
-                Some(v) => {v}
+                None => {
+                    into_response(Bytes::from(""))
+                }
+                Some(v) => {
+                    into_response(v)
+                }
             }
         });
 
@@ -63,14 +70,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(kv.clone())
         .map(|k, kv: Arc<Kv>| {
             //info!("del key{:?}", k);
-            kv.del(&k);
+            kv.del(&Bytes::from(k));
             return warp::reply::reply();
         });
 
     let list = warp::path("list")
         .and(warp::body::json())
         .and(kv.clone())
-        .map(|keys: Vec<String>, kv: Arc<Kv>| {
+        .map(|keys: Vec<Bytes>, kv: Arc<Kv>| {
             warp::reply::json(&kv.list(keys))
         });
 
@@ -149,4 +156,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     thread.await?;
     Ok(())
+}
+
+fn into_response(bytes : Bytes) -> Response<Body> {
+    Response::builder()
+        .header("Content-Type", "text/html")
+        .body(Body::from(bytes))
+        .unwrap()
 }

@@ -1,13 +1,14 @@
+use bytes::Bytes;
+use serde::{self, Serialize, Deserialize};
 
-use serde::{self,Serialize, Deserialize};
-#[derive(Debug,Clone,Serialize, Deserialize,Eq,PartialEq)]
+#[derive(Debug,Clone, Serialize, Deserialize,Eq,PartialEq)]
 pub struct InsrtRequest{
-    pub key: String,
-    pub value: String
+    pub key: Bytes,
+    pub value: Bytes
 }
 
 impl InsrtRequest {
-    pub fn new(key: String, value: String) -> Self {
+    pub fn new(key: Bytes, value: Bytes) -> Self {
         InsrtRequest {
             key,
             value
