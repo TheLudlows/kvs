@@ -17,8 +17,7 @@ use crate::store::*;
 //#[global_allocator]
 //static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
-//#[tokio::main(worker_threads = 16)]
-#[tokio::main]
+#[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Kv::new());
     let zset = Arc::new(ZSet::new());
@@ -160,7 +159,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn into_response(bytes : Bytes) -> Response<Body> {
     Response::builder()
-        .header("Content-Type", "text/html")
         .body(Body::from(bytes))
         .unwrap()
 }
