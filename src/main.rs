@@ -185,7 +185,7 @@ use tokio_stream::StreamExt;
 use tokio_util::codec::{Decoder, Encoder, Framed};
 use serde::Serialize;
 
-#[tokio::main]
+#[tokio::main(worker_threads=16)]
 async fn main() -> Result<(), Box<dyn Error>> {
     // Parse the arguments, bind the TCP socket we'll be listening to, spin up
     // our worker threads, and start shipping sockets to those worker threads.
