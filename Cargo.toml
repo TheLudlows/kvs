@@ -11,13 +11,18 @@ leveldb = "0.8"
 db-key = "0.0.5"
 warp = "0.3.2"
 tokio = {version = "1",features = ["full"]}
+tokio-stream = "0.1.8"
+tokio-util={version = "0.6.9",features = ["full"]}
+futures = "0.3.18"
+httpdate="1.0.2"
 log = "0.4"
 log4rs = {version = "1.0"}
 serde = {version = "1", features = ["derive"] }
 serde_json = "1"
 signal-hook = "0.3"
 flatbuffers = "2"
-#http = "0.2"
+http = "0.2"
+httparse = "1.7"
 #cached = "0.23"
 #ttl_cache = "0.5.1"
 local_ipaddress = "0.1.3"
