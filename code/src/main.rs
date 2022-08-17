@@ -13,8 +13,8 @@ use crate::store::*;
 const EMPTY_STRING: String = String::new();
 
 
-//#[global_allocator]
-//static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+#[global_allocator]
+static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 #[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
