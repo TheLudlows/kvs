@@ -1,7 +1,11 @@
 
-pub static LEVEL_DB_PATH: &str = "/Users/liuchao/data/";
+pub static BASE_PATH: &str = "/Users/liuchao/data";
 
-pub static LEVEL_DB_ONLINE_PATH: &str = "/data";
+pub static BASE_ONLINE_PATH: &str = "/data";
+
+pub static DATA_PATH: &str = "total_data";
+
+pub static CLUSTER_FILE_PATH: &str = "/data/cluster";
 
 pub const SHARD_NUM: usize = 16;
 

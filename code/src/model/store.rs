@@ -1,29 +1,21 @@
-use std::cell::Cell;
 use std::collections::{BTreeMap, HashMap};
+use std::fs::create_dir;
 use std::path::{PathBuf};
 
 use dashmap::DashMap;
-use lazy_static::lazy_static;
+use fs_extra::dir::{copy, CopyOptions};
 use leveldb::database::Database;
 use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
 use log::{info};
-use reqwest::Error;
 use crate::model::{evn, http_req};
+use crate::model::cluster::{CLUSTER_URL, IDX};
 use crate::model::key::MyKey;
 use crate::model::evn::*;
 use crate::model::request::*;
 
+static data_files: [&'static str; 3] = ["data1", "data2", "data3"];
 
-
-lazy_static! {
-    pub static ref CLUSTER_URL:Vec<String> = {
-        let v = vec![String::new(), String::new(), String::new()];
-        v
-    };
-
-    pub static ref IDX: Box<usize> = Box::new(0);
-}
 
 #[derive(Debug, Clone)]
 pub struct Kv {
@@ -140,19 +132,42 @@ impl Kv {
     }
 
     pub async fn load_from_file(&self) {
-        let mut pb = PathBuf::from(LEVEL_DB_PATH);
+        let mut pb = PathBuf::from(BASE_PATH);
         if !pb.exists() {
-            pb = PathBuf::from(LEVEL_DB_ONLINE_PATH);
+            pb = PathBuf::from(BASE_ONLINE_PATH);
         }
-        let mut op = Options::new();
-        op.create_if_missing = true;
-        let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
-        let mut it = database.iter(ReadOptions::new());
-        while let Some((k, v)) = it.next() {
-            // 批量？
-            self.insert(InsrtRequest::new(k.0, String::from_utf8(v).unwrap())).await;
+
+        pb.push(DATA_PATH);
+
+        if !pb.exists() {
+            //第一次加载
+            create_dir(&pb).unwrap();
+            let mut options = CopyOptions::new();
+            options.skip_exist = true;
+
+            copy("/data1", &pb, &options).unwrap();
+            copy("/data2", &pb, &options).unwrap();
+            copy("/data3", &pb, &options).unwrap();
         }
-        info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
+        info!("copy dir to {:?}", pb);
+        let mut paths = vec![];
+        for s in data_files {
+            let mut data_path = PathBuf::from(&pb);
+            data_path.push(s);
+            paths.push(data_path)
+        }
+
+        for pb in paths {
+            let mut op = Options::new();
+            op.create_if_missing = true;
+            let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
+            let mut it = database.iter(ReadOptions::new());
+            while let Some((k, v)) = it.next() {
+                // 批量？
+                self.insert_local(InsrtRequest::new(k.0, String::from_utf8(v).unwrap()));
+            }
+            info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
+        }
     }
 
     #[inline]
@@ -165,6 +180,14 @@ impl Kv {
                 Ok(_) => {}
                 Err(_) => {}
             }
+        }
+    }
+
+    #[inline]
+    pub fn insert_local(&self, req: InsrtRequest) {
+        let cluster_idx = cluster_idx(&req.key);
+        if cluster_idx == **IDX {
+            self.map_arr[shard_idx(&req.key)].insert(req.key, req.value);
         }
     }
 

@@ -8,9 +8,11 @@ use log::info;
 use warp::Filter;
 use log4rs::init_file;
 use signal_hook::{consts::SIGTERM, iterator::Signals};
-use crate::model::request::*;
 
 pub use model::*;
+
+use crate::request::*;
+use crate::cluster::*;
 use crate::store::*;
 use crate::http_req::*;
 
@@ -27,31 +29,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zset = Arc::new(ZSet::new());
     init_file("./log4rs.yml", Default::default())?;
     kv.load_from_file();
+    // load cluster info
+    load_cluster_from_disk();
     let kv = warp::any().map(move || kv.clone());
     let zset = warp::any().map(move || zset.clone());
-
 
     let update = warp::path("updateCluster")
         .and(warp::body::json())
         .map(|c: Cluster| {
-                let ptr_idx = ((*IDX).as_ref() as *const usize) as *mut usize;
-                unsafe {
-
-                ptr_idx.write(c.value-1);
-
-                let mut ptr = CLUSTER_URL.as_ptr() as * mut String;
-                for s in c.hosts {
-                    let mut host = String::from("http://");
-                    host.push_str(&s);
-                    if !s.contains(":") {
-                        host.push_str("8080");
-                    }
-                    let _old = ptr.replace(host);
-                    ptr = ptr.add(1);
-                }
-            }
-            println!("cur node is {}", *IDX);
-            println!("cluster is {:?}", *CLUSTER_URL);
+            set_cluster(c);
             return warp::reply::reply();
         });
 

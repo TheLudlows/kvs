@@ -1,0 +1,63 @@
+use std::fs::{File, OpenOptions};
+use std::io::{BufReader, Read, Write};
+use std::path::PathBuf;
+use lazy_static::lazy_static;
+use crate::model::evn::CLUSTER_FILE_PATH;
+use crate::model::request::Cluster;
+
+
+lazy_static! {
+    pub static ref CLUSTER_URL:Vec<String> = {
+        let v = vec![String::new(), String::new(), String::new()];
+        v
+    };
+
+    pub static ref IDX: Box<usize> = Box::new(0);
+
+}
+
+pub fn set_cluster(c: Cluster) {
+    let ptr_idx = ((*IDX).as_ref() as *const usize) as *mut usize;
+    unsafe {
+        ptr_idx.write(c.value-1);
+
+        let mut ptr = CLUSTER_URL.as_ptr() as * mut String;
+        for s in c.hosts.iter() {
+            let mut host = String::from("http://");
+            host.push_str(s);
+            if !s.contains(":") {
+                host.push_str("8080");
+            }
+            let _old = ptr.replace(host);
+            ptr = ptr.add(1);
+        }
+    }
+    println!("cur node is {}", *IDX);
+    println!("cluster is {:?}", *CLUSTER_URL);
+    // write to file
+    let file = PathBuf::from(CLUSTER_FILE_PATH);
+    if file.exists() {
+        return;
+    }
+    let mut f = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(file).unwrap();
+    f.write_all(serde_json::to_string(&c).unwrap().as_bytes()).unwrap();
+}
+
+pub fn load_cluster_from_disk() {
+    let file = PathBuf::from(CLUSTER_FILE_PATH);
+    if !file.exists() {
+        return;
+    }
+    let mut f = OpenOptions::new()
+        .read(true)
+        .open(file).unwrap();
+    let mut body = String::new();
+    f.read_to_string(&mut body).unwrap();
+
+    let cluster:Cluster = serde_json::from_str(&body).unwrap();
+    set_cluster(cluster);
+}
