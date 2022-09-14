@@ -7,6 +7,12 @@ pub struct InsrtRequest{
     pub value: String
 }
 
+#[derive(Debug,Clone,Serialize, Deserialize,Eq,PartialEq)]
+pub struct Cluster{
+    pub hosts:Vec<String>,
+    pub value: usize
+}
+
 impl InsrtRequest {
     pub fn new(key: String, value: String) -> Self {
         InsrtRequest {

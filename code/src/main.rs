@@ -1,5 +1,8 @@
 mod model;
-use std::thread;
+
+use std::{env, thread};
+use std::net::SocketAddr;
+use std::str::FromStr;
 use std::sync::Arc;
 use log::info;
 use warp::Filter;
@@ -9,12 +12,14 @@ use crate::model::request::*;
 
 pub use model::*;
 use crate::store::*;
+use crate::http_req::*;
 
-const EMPTY_STRING: String = String::new();
-
+#[macro_use]
+extern crate lazy_static;
 
 #[global_allocator]
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 
 #[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -26,6 +31,31 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zset = warp::any().map(move || zset.clone());
 
 
+    let update = warp::path("updateCluster")
+        .and(warp::body::json())
+        .map(|c: Cluster| {
+                let ptr_idx = ((*IDX).as_ref() as *const usize) as *mut usize;
+                unsafe {
+
+                ptr_idx.write(c.value-1);
+
+                let mut ptr = CLUSTER_URL.as_ptr() as * mut String;
+                for s in c.hosts {
+                    let mut host = String::from("http://");
+                    host.push_str(&s);
+                    if !s.contains(":") {
+                        host.push_str("8080");
+                    }
+                    let _old = ptr.replace(host);
+                    ptr = ptr.add(1);
+                }
+            }
+            println!("cur node is {}", *IDX);
+            println!("cluster is {:?}", *CLUSTER_URL);
+            return warp::reply::reply();
+        });
+
+
     let init_route = warp::get().and(warp::path("init")).map(|| {
         return format!("ok");
     });
@@ -33,19 +63,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let query = warp::get().and(warp::path("query"))
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .map(|k, kv: Arc<Kv>| {
-           /* let resp = match kv.get(&k) {
+        .and_then(|k, kv: Arc<Kv>| async move{
+            match kv.get(&k).await{
                 None => {
                     Err(warp::reject::not_found())
                 }
                 Some(v) => {
                     Ok(v)
                 }
-            };
-            async move { resp }*/
-            match kv.get(&k) {
-                None => {EMPTY_STRING}
-                Some(v) => {v}
             }
         });
 
@@ -53,33 +78,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let add = warp::path("add")
         .and(warp::body::json())
         .and(kv.clone())
-        .map(|req: InsrtRequest, kv: Arc<Kv>| {
-            kv.insert(req.key, req.value);
+        .then(|req: InsrtRequest, kv: Arc<Kv>| async move{
+            kv.insert(req).await;
             return warp::reply::reply();
         });
 
     let del = warp::path("del")
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .map(|k, kv: Arc<Kv>| {
+        .then(|k, kv: Arc<Kv>| async move{
             //info!("del key{:?}", k);
-            kv.del(&k);
+            kv.del(&k).await;
             return warp::reply::reply();
         });
 
     let list = warp::path("list")
         .and(warp::body::json())
         .and(kv.clone())
-        .map(|keys: Vec<String>, kv: Arc<Kv>| {
-            warp::reply::json(&kv.list(keys))
+        .then(|keys: Vec<String>, kv: Arc<Kv>| async move {
+            warp::reply::json(&kv.list(keys).await)
         });
 
     let batch = warp::path("batch")
         .and(warp::body::json())
         .and(kv.clone())
-        .map(|vs: Vec<InsrtRequest>, kv: Arc<Kv>| {
+        .then(|vs: Vec<InsrtRequest>, kv: Arc<Kv>| async move{
             //info!("{:?}", vs);
-            kv.batch_insert(vs);
+            kv.batch_insert(vs).await;
             return warp::reply();
         });
 
@@ -88,9 +113,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::body::json())
         .and(zset.clone())
-        .map(|k: String, v: ScoreValue, zset: Arc<ZSet>| {
+        .then(|k: String, v: ScoreValue, zset: Arc<ZSet>| async move{
             //info!("{:?}{:?}",k, v);
-            zset.insert(k, v);
+            zset.insert(k, v).await;
             return warp::reply();
         });
 
@@ -98,16 +123,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::body::json())
         .and(zset.clone())
-        .map(|k: String, range: ScoreRange, zset: Arc<ZSet>| {
-            let res = zset.range(&k, range);
-            //info!("zrange{:?} {:?} {:?}", k, range, res);
-           /* async move {
-                if res.len() == 0 {
-                    Err(warp::reject::not_found())
-                } else {
-                    Ok(warp::reply::json(&res))
-                }
-            }*/
+        .then(|k: String, range: ScoreRange, zset: Arc<ZSet>| async move{
+            let res = zset.range(&k, range).await;
             warp::reply::json(&res)
         });
 
@@ -116,22 +133,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::path::param::<String>())
         .and(zset.clone())
-        .map(|k: String, v: String, zset: Arc<ZSet>| {
+        .then(|k: String, v: String, zset: Arc<ZSet>| async move{
             //info!("{:?}{:?}",k, v);
-            zset.remove(&k, &v);
+            zset.remove(&k, &v).await;
             return warp::reply();
         });
 
-    let apis = init_route.or(query).or(add).or(del)
+    let apis = init_route.or(update).or(query).or(add).or(del)
         .or(list).or(batch).or(zadd).or(zrange)
         .or(zrmv);
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
+
+    let port = read_port();
+
+    let address: SocketAddr = (String::from("0.0.0.0:") + &port).parse().unwrap();
+
+    info!("rust server started at {}", address);
     let (_, server) = warp::serve(apis)
         .unstable_pipeline()
-        .bind_with_graceful_shutdown(([0, 0, 0, 0], 8080), async move {
-            info!("rust server started");
+        .bind_with_graceful_shutdown(address, async move {
             rx.recv().await;
             info!("rust servert receive close signal");
         });
@@ -149,4 +171,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     thread.await?;
     Ok(())
+}
+
+pub fn read_port() -> String {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        return String::from("8080");
+    } else {
+        return args[1].clone();
+    }
 }

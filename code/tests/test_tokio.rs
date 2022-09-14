@@ -12,4 +12,6 @@ fn main() {
         .build()
         .unwrap();
     // use runtime ...
+
+    let p = Box::new(1);
 }
