@@ -14,9 +14,6 @@ use crate::model::key::MyKey;
 use crate::model::evn::*;
 use crate::model::request::*;
 
-static data_files: [&'static str; 3] = ["data1", "data2", "data3"];
-
-
 #[derive(Debug, Clone)]
 pub struct Kv {
     map_arr: Vec<DashMap<String, String>>,
@@ -74,10 +71,10 @@ impl ZSet {
         let mut e = map.entry(k).or_insert_with(|| SortValues::new());
 
         if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
-            &e.value_map.remove(v);
+            e.value_map.remove(v);
         }
         if let Some(v) = &e.value_map.insert(v.value, v.score) {
-            &e.score_map.remove(v);
+            e.score_map.remove(v);
         }
     }
 
@@ -107,7 +104,7 @@ impl ZSet {
             let map = &self.map_arr[shard_idx(&k)];
             if let Some(mut e) = map.get_mut(k) {
                 if let Some(v) = &e.value_map.remove(v) {
-                    &e.score_map.remove(v);
+                    e.score_map.remove(v);
                 }
             }
         } else {
@@ -131,11 +128,8 @@ impl Kv {
         }
     }
 
-    pub async fn load_from_file(&self) {
+    pub fn load_from_file(&self) {
         let mut pb = PathBuf::from(BASE_PATH);
-        if !pb.exists() {
-            pb = PathBuf::from(BASE_ONLINE_PATH);
-        }
 
         pb.push(DATA_PATH);
 
@@ -145,13 +139,13 @@ impl Kv {
             let mut options = CopyOptions::new();
             options.skip_exist = true;
 
-            copy("/data1", &pb, &options).unwrap();
-            copy("/data2", &pb, &options).unwrap();
-            copy("/data3", &pb, &options).unwrap();
+            copy(data_files[0], &pb, &options).unwrap();
+            copy(data_files[1], &pb, &options).unwrap();
+            copy(data_files[2], &pb, &options).unwrap();
+            info!("copy dir to {:?}", pb);
         }
-        info!("copy dir to {:?}", pb);
         let mut paths = vec![];
-        for s in data_files {
+        for s in total_data_files {
             let mut data_path = PathBuf::from(&pb);
             data_path.push(s);
             paths.push(data_path)
