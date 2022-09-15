@@ -18,11 +18,11 @@ pub static DATA_PATH: &str = "total_data";
 
 pub static CLUSTER_FILE: &str = "cluster";
 
-pub const SHARD_NUM: usize = 16;
+pub const SHARD_NUM: usize = 8;
 
-pub const DEFAULT_SIZE: usize = 1024 * 16;
+pub const DEFAULT_SIZE: usize = 1024 * 8;
 
-pub const DEFAULT_KV_SIZE: usize = 1024 * 32;
+pub const DEFAULT_KV_SIZE: usize = 1024 * 8;
 
 const CLUSTER_NUM: usize= 3;
 
@@ -33,7 +33,6 @@ pub fn shard_idx(s: &String) -> usize {
     }
 
     //fasthash::xx::hash32(s) as usize % SHARD_NUM
-
     s.as_bytes()[s.len() - 1] as usize % SHARD_NUM
 }
 

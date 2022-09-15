@@ -211,8 +211,14 @@ impl Kv {
         } else {
             //info!("get to {}, cur{}", cluster_idx, **IDX);
             match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], k).await {
-                Ok(v) => { Some(v) }
-                Err(_) => {
+                Ok(v) => {
+                    match v {
+                        None => None,
+                        Some(val) => { Some(val) }
+                    }
+                }
+
+                _ => {
                     // todo log
                     None
                 }

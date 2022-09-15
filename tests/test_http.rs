@@ -14,11 +14,9 @@ use kvs::model::http_req;
 use kvs::model::request::*;
 
 
-static ADD_COUNT: i32 = 1010;
+static ADD_COUNT: i32 = 300;
 
 static DEL_COUNT: i32 = 10;
-
-static DEL_START: i32 = 1000;
 
 static ZADD_COUNT: i32 = 100;
 
@@ -32,8 +30,6 @@ extern crate lazy_static;
 use std::collections::HashMap;
 
 lazy_static! {
-    static ref URL:String = String::from("http://localhost:8080");
-
     static ref CLUSTER_URLS: Vec<String> =  {
         let mut v = vec![
             String::from("http://localhost:8080"),
@@ -65,7 +61,7 @@ async fn test_main() -> Result<(), reqwest::Error> {
     test_batch().await?;
     test_del().await?;
     test_zadd().await?;
-   test_range().await?;
+    test_range().await?;
     test_rmv().await?;
     let end = Local::now().timestamp_millis();
     println!("total cost :{}", (end - start));
@@ -92,22 +88,26 @@ async fn test_init() -> Result<(), reqwest::Error> {
 }
 
 async fn test_add() -> Result<(), reqwest::Error> {
+    let mut n = 0;
     for host in CLUSTER_URLS.iter() {
-        for i in 0..ADD_COUNT {
+        for i in n..n + ADD_COUNT / 3 {
             let req = InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string());
             let res = http_req::add(&client, host, req).await;
             assert!(res.is_ok());
         };
+        n += ADD_COUNT / 3;
     }
     Ok(())
 }
 
 async fn test_query() -> Result<(), reqwest::Error> {
+    let mut n = 0;
     for host in CLUSTER_URLS.iter() {
-        for i in 0..ADD_COUNT {
-            let res = http_req::query(&client, host, &(String::from("key") + &i.to_string())).await?;
+        for i in n..n + ADD_COUNT / 3 {
+            let res = http_req::query(&client, host, &(String::from("key") + &i.to_string())).await?.unwrap();
             assert_eq!(res, String::from("val") + i.to_string().as_str());
         }
+        n += ADD_COUNT / 3;
     }
     Ok(())
 }
@@ -133,35 +133,36 @@ async fn test_list() -> Result<(), reqwest::Error> {
 }
 
 async fn test_batch() -> Result<(), reqwest::Error> {
+    let mut n = ADD_COUNT;
     for host in CLUSTER_URLS.iter() {
-        let count = Arc::new(AtomicI32::from(2 * ADD_COUNT));
-        let mut n;
-        loop {
-            n = count.fetch_sub(10, Ordering::Release);
-            if n < ADD_COUNT {
-                break;
-            }
-            let mut v = vec![];
-            for i in n..n + 10 {
-                v.push(InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string()));
-            }
-            let rep = http_req::batch(&client, host, v).await;
-            assert!(rep.is_ok());
+        let mut v = Vec::new();
+        for i in n..n + 10 {
+            v.push(InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string()));
         }
+        let rep = http_req::batch(&client, host, v).await;
+        assert!(rep.is_ok());
+        n += 10;
     }
     Ok(())
 }
 
 
 async fn test_del() -> Result<(), reqwest::Error> {
+    let mut n = DEL_COUNT;
     for host in CLUSTER_URLS.iter() {
-        for i in DEL_START..ADD_COUNT {
-            http_req::del(&client, &URL, &i.to_string()).await?;
+        for i in n..n + 10 {
+            http_req::del(&client, &host, &i.to_string()).await?;
         }
-        for i in DEL_START..ADD_COUNT {
+        n += 10;
+    }
+
+    let mut n = DEL_COUNT;
+    for host in CLUSTER_URLS.iter() {
+        for i in n..n + 10 {
             let rep = http_req::query(&client, host, &i.to_string()).await?;
-            assert_eq!(rep, "");
+            assert_eq!(rep, None);
         }
+        n += 10;
     }
     Ok(())
 }

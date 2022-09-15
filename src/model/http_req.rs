@@ -35,12 +35,15 @@ pub async fn add(client: &Client, host: &String, req: InsrtRequest) -> Result<()
     Ok(())
 }
 
-pub async fn query(client: &Client, host: &String, key: &String) -> Result<String, reqwest::Error> {
-    Ok(client.get(String::from(host) + "/query/" + key)
+pub async fn query(client: &Client, host: &String, key: &String) -> Result<Option<String>, reqwest::Error> {
+
+    let resp = client.get(String::from(host) + "/query/" + key)
         .send()
-        .await?
-        .text()
-        .await?)
+        .await?;
+    if resp.status() == StatusCode::NOT_FOUND{
+        return Ok(None);
+    }
+    Ok(Some(resp.text().await?))
 }
 
 pub async fn list(client: &Client, host: &String, keys: &Vec<String>) -> Result<Vec<InsrtRequest>, reqwest::Error> {
