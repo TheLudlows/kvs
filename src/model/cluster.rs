@@ -13,7 +13,7 @@ lazy_static! {
         v
     };
 
-    pub static ref IDX: Box<usize> = Box::new(0);
+    pub static ref IDX: Box<usize> = Box::new(999);
 
 }
 

@@ -1,2 +1,3 @@
-# cargo build -r
-cd kvs && cargo run --release &
+cd /root/kvs && /root/.cargo/bin/cargo run -r &
+
+#cd /root/code/target/release/ && ./kvs & 

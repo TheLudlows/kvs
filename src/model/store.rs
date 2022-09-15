@@ -151,9 +151,11 @@ impl Kv {
             paths.push(data_path)
         }
 
+        if **IDX == 999 {
+            return;
+        }
         for pb in paths {
             let mut op = Options::new();
-            op.create_if_missing = true;
             let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
