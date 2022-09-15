@@ -13,6 +13,7 @@ pub use model::*;
 
 use crate::request::*;
 use crate::cluster::*;
+use crate::evn::read_port;
 use crate::store::*;
 use crate::http_req::*;
 
@@ -135,7 +136,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
 
-    let port = read_port();
+    let port = match read_port() {
+        None => {String::from("8080")}
+        Some(v) => {v}
+    };
 
     let address: SocketAddr = (String::from("0.0.0.0:") + &port).parse().unwrap();
 
@@ -160,13 +164,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     thread.await?;
     Ok(())
-}
-
-pub fn read_port() -> String {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        return String::from("8080");
-    } else {
-        return args[1].clone();
-    }
 }

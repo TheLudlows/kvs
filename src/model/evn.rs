@@ -1,4 +1,4 @@
-
+use std::env;
 
 #[cfg(target_os = "macos")]
 pub static BASE_PATH: &str = "/Users/liuchao/data";
@@ -16,7 +16,7 @@ pub static total_data_files: [&'static str; 3] = ["data1", "data2", "data3"];
 
 pub static DATA_PATH: &str = "total_data";
 
-pub static CLUSTER_FILE_PATH: &str = "cluster";
+pub static CLUSTER_FILE: &str = "cluster";
 
 pub const SHARD_NUM: usize = 16;
 
@@ -45,3 +45,11 @@ pub fn cluster_idx(s: &String) -> usize {
     fasthash::xx::hash32(s) as usize % CLUSTER_NUM
 }
 
+pub fn read_port() -> Option<String> {
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        return None
+    } else {
+        return Some(args[1].clone());
+    }
+}

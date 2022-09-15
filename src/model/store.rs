@@ -172,6 +172,7 @@ impl Kv {
         if cluster_idx == **IDX {
             self.map_arr[shard_idx(&req.key)].insert(req.key, req.value);
         } else {
+            //info!("insert to {}, cur{}", cluster_idx, **IDX);
             match http_req::add(&self.client, &CLUSTER_URL[cluster_idx], req).await {
                 Ok(_) => {}
                 Err(_) => {}
@@ -208,6 +209,7 @@ impl Kv {
                 //.map(|e| e.value().to_string())
                 .map(|e| e.to_string())
         } else {
+            //info!("get to {}, cur{}", cluster_idx, **IDX);
             match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], k).await {
                 Ok(v) => { Some(v) }
                 Err(_) => {

@@ -1,9 +1,9 @@
-use std::fs::{File, OpenOptions};
+use std::fs::{create_dir, File, OpenOptions};
 use std::io::{BufReader, Read, Write};
 use std::path::PathBuf;
 use lazy_static::lazy_static;
 use log::info;
-use crate::model::evn::{BASE_PATH, CLUSTER_FILE_PATH};
+use crate::model::evn::{BASE_PATH, CLUSTER_FILE, read_port};
 use crate::model::request::Cluster;
 
 
@@ -36,12 +36,13 @@ pub fn set_cluster(c: Cluster) {
     println!("cur node is {}", *IDX);
     println!("cluster is {:?}", *CLUSTER_URL);
     // write to file
-    let file = PathBuf::from(BASE_PATH).join(CLUSTER_FILE_PATH);
+    let file = conf_path();
 
     if file.exists() {
         return;
     }
     info!("crate conf file {:?}", file);
+
     let mut f = OpenOptions::new()
         .read(true)
         .write(true)
@@ -52,7 +53,7 @@ pub fn set_cluster(c: Cluster) {
 }
 
 pub fn load_cluster_from_disk() {
-    let file = PathBuf::from(BASE_PATH).join(CLUSTER_FILE_PATH);
+    let file = conf_path();
     if !file.exists() {
         return;
     }
@@ -64,4 +65,15 @@ pub fn load_cluster_from_disk() {
 
     let cluster:Cluster = serde_json::from_str(&body).unwrap();
     set_cluster(cluster);
+}
+
+pub fn conf_path() -> PathBuf {
+    let mut file = PathBuf::from(BASE_PATH);
+    if let Some(v) = read_port() {
+        file = file.join(v);
+        if !file.exists() {
+            create_dir(&file).unwrap();
+        }
+    }
+    return file.join(CLUSTER_FILE);
 }
