@@ -35,7 +35,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::body::json())
         .map(|c: Cluster| {
             set_cluster(c);
-            return warp::reply::reply();
+            return format!("ok");
         });
 
 
