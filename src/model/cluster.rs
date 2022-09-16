@@ -27,12 +27,13 @@ pub fn set_cluster(c: Cluster) {
             let mut host = String::from("http://");
             host.push_str(s);
             if !s.contains(":") {
-                host.push_str("8080");
+                host.push_str(":8080");
             }
             let _old = ptr.replace(host);
             ptr = ptr.add(1);
         }
     }
+    println!("set cluster {:?}", c);
     println!("cur node is {}", *IDX);
     println!("cluster is {:?}", *CLUSTER_URL);
     // write to file

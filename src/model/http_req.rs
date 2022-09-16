@@ -7,6 +7,7 @@ pub async fn update_cluster(client: &Client, host: &String, cluster: Cluster) ->
         .json(&cluster)
         .send()
         .await?;
+    println!("{:?}", _rep);
     Ok(())
 }
 

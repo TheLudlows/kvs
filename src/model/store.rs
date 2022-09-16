@@ -7,7 +7,7 @@ use fs_extra::dir::{copy, CopyOptions};
 use leveldb::database::Database;
 use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
-use log::{info};
+use log::{error, info};
 use crate::model::{http_req};
 use crate::model::cluster::{CLUSTER_URL, IDX};
 use crate::model::key::MyKey;
@@ -61,10 +61,12 @@ impl ZSet {
         } else {
             match http_req::zadd(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
                 Ok(_) => {}
-                Err(_) => {}
+                Err(_) => {
+                    error!("insert err")
+                }
             }
         }
-        info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
+        //info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
     }
     fn do_insert(&self, k: String, v: ScoreValue) {
         let map = &self.map_arr[shard_idx(&k)];
@@ -92,7 +94,10 @@ impl ZSet {
         } else {
             match http_req::range(&self.client, &CLUSTER_URL[cluster_idx], k, range).await {
                 Ok(v) => { ret.clone_from(&v) }
-                Err(_) => {}
+                Err(_) => {
+                    error!("range err")
+
+                }
             }
         }
         ret
@@ -110,7 +115,10 @@ impl ZSet {
         } else {
             match http_req::rmv(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
                 Ok(_) => {}
-                Err(_) => {}
+                Err(_) => {
+                    error!("rmv err")
+
+                }
             }
         }
     }
@@ -176,7 +184,9 @@ impl Kv {
             //info!("insert to {}, cur{}", cluster_idx, **IDX);
             match http_req::add(&self.client, &CLUSTER_URL[cluster_idx], req).await {
                 Ok(_) => {}
-                Err(_) => {}
+                Err(_) => {
+                    error!("insert kv err")
+                }
             }
         }
     }
@@ -197,7 +207,10 @@ impl Kv {
         } else {
             match http_req::del(&self.client, &CLUSTER_URL[cluster_idx], k).await {
                 Ok(_) => {}
-                Err(_) => {}
+                Err(_) => {
+                    error!("del err")
+
+                }
             }
         }
     }
