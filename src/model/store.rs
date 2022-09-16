@@ -8,6 +8,7 @@ use leveldb::database::Database;
 use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
 use log::{info};
+use reqwest::Error;
 use crate::model::{evn, http_req};
 use crate::model::cluster::{CLUSTER_URL, IDX};
 use crate::model::key::MyKey;
@@ -65,6 +66,7 @@ impl ZSet {
                 Err(_) => {}
             }
         }
+        info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
     }
     fn do_insert(&self, k: String, v: ScoreValue) {
         let mut map = &self.map_arr[shard_idx(&k)];
@@ -155,6 +157,7 @@ impl Kv {
             return;
         }
         for pb in paths {
+            info!("load data from {:?}", pb);
             let mut op = Options::new();
             let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
             let mut it = database.iter(ReadOptions::new());
@@ -225,24 +228,77 @@ impl Kv {
             }
         };
     }
+
+    pub fn local_get(&self, k :&String) -> Option<String> {
+        (&self.map_arr[shard_idx(&k)]).get(k)
+            //.map(|e| e.value().to_string())
+            .map(|e| e.to_string())
+    }
     #[inline]
     pub async fn list(&self, keys: Vec<String>) -> Vec<InsrtRequest> {
-        let mut vec = Vec::new();
+        let mut ret = Vec::new();
+        let mut vec_group = vec![];
+        for _ in 0..CLUSTER_NUM {
+            vec_group.push(vec![]);
+        }
+
         for k in keys {
-            match self.get(&k).await {
-                None => {}
-                Some(v) => {
-                    vec.push(InsrtRequest::new(k, v))
+            let cluster_idx = cluster_idx(&k);
+            vec_group[cluster_idx].push(k);
+        }
+
+        for i in 0..vec_group.len() {
+            if vec_group[i].is_empty() {
+                continue;
+            }
+            if i == **IDX {
+                for k in vec_group[i].iter() {
+                    match self.local_get(k) {
+                        None => {}
+                        Some(v) => {
+                            ret.push(InsrtRequest::new(k.clone(), v));
+                        }
+                    }
+                }
+            } else {
+                match http_req::list(&self.client, &CLUSTER_URL[i], &vec_group[i]).await {
+                    Ok(mut res) => {
+                        while let Some(v) = res.pop() {
+                            ret.push(v)
+                        }
+                    }
+                    Err(_) => {}
                 }
             }
         }
-        vec
+        ret
     }
 
     #[inline]
-    pub async fn batch_insert(&self, vs: Vec<InsrtRequest>) {
-        for req in vs {
-            self.insert(req).await;
+    pub async fn batch_insert(&self, reqs: Vec<InsrtRequest>) {
+        let mut vec_group = vec![];
+        for _ in 0..CLUSTER_NUM {
+            vec_group.push(vec![]);
+        }
+        for req in reqs {
+            let cluster_idx = cluster_idx(&req.key);
+            vec_group[cluster_idx].push(req);
+        }
+
+        for i in 0..vec_group.len() {
+            if vec_group[i].is_empty() {
+                continue;
+            }
+            if i == **IDX {
+                for req in vec_group[i].clone() {
+                    self.insert_local(req);
+                }
+            } else {
+                match http_req::batch(&self.client, &CLUSTER_URL[i], vec_group[i].clone()).await {
+                    Ok(_) => {}
+                    Err(_) => {}
+                }
+            }
         }
     }
 }

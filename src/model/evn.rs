@@ -24,7 +24,7 @@ pub const DEFAULT_SIZE: usize = 1024 * 8;
 
 pub const DEFAULT_KV_SIZE: usize = 1024 * 8;
 
-const CLUSTER_NUM: usize= 3;
+pub const CLUSTER_NUM: usize= 3;
 
 #[inline]
 pub fn shard_idx(s: &String) -> usize {

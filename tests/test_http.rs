@@ -18,7 +18,7 @@ static ADD_COUNT: i32 = 300;
 
 static DEL_COUNT: i32 = 10;
 
-static ZADD_COUNT: i32 = 100;
+static ZADD_COUNT: i32 = 300;
 
 static ZADD_SUB_COUNT: i32 = 10;
 static ZRMV_COUNT: i32 = 10;
@@ -103,7 +103,7 @@ async fn test_add() -> Result<(), reqwest::Error> {
 async fn test_query() -> Result<(), reqwest::Error> {
     let mut n = 0;
     for host in CLUSTER_URLS.iter() {
-        for i in n..n + ADD_COUNT / 3 {
+        for i in n..n + (ADD_COUNT / 3) {
             let res = http_req::query(&client, host, &(String::from("key") + &i.to_string())).await?.unwrap();
             assert_eq!(res, String::from("val") + i.to_string().as_str());
         }
@@ -146,7 +146,6 @@ async fn test_batch() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-
 async fn test_del() -> Result<(), reqwest::Error> {
     let mut n = DEL_COUNT;
     for host in CLUSTER_URLS.iter() {
@@ -168,36 +167,36 @@ async fn test_del() -> Result<(), reqwest::Error> {
 }
 
 async fn test_zadd() -> Result<(), reqwest::Error> {
+    let mut n = 0;
     for host in CLUSTER_URLS.iter() {
-        let count = Arc::new(AtomicI32::from(ZADD_COUNT));
-        let mut n;
-        loop {
-            n = count.fetch_sub(1, Ordering::Release);
-            if n < 0 {
-                break;
-            }
+        for i in n..n + ZADD_COUNT / 3 {
             for j in 0..ZADD_SUB_COUNT {
                 let score = ScoreValue::new(j as u32, j.to_string());
-                let res = http_req::zadd(&client, host, String::from("key") + &n.to_string(), score).await;
+                let res = http_req::zadd(&client, host, String::from("key") + &i.to_string(), score).await;
                 assert!(res.is_ok());
             }
         }
+        n += ZADD_COUNT / 3;
     }
     Ok(())
 }
 
 async fn test_range() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
-        let count = Arc::new(AtomicI32::from(ZADD_COUNT));
-        let mut n;
-        loop {
-            n = count.fetch_sub(1, Ordering::Release);
-            if n < 0 {
-                break;
-            }
+        for i in 0..ZADD_COUNT {
             let score = ScoreRange::new(0, (ZADD_SUB_COUNT / 2) as u32);
-            let res = http_req::range(&client, host, &(String::from("key") + &n.to_string()), score).await?;
+            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), score).await?;
+            if res.len()!= (ZADD_SUB_COUNT / 2 + 1) as usize {
+                println!("{}", &(String::from("key") + &i.to_string()))
+            }
             assert_eq!(res.len(), (ZADD_SUB_COUNT / 2 + 1) as usize);
+
+            let score = ScoreRange::new(0, (ZADD_SUB_COUNT) as u32);
+            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), score).await?;
+            if res.len()!= (ZADD_SUB_COUNT) as usize {
+                println!("{}", &(String::from("key") + &i.to_string()))
+            }
+            assert_eq!(res.len(), (ZADD_SUB_COUNT) as usize);
         }
     }
     Ok(())
