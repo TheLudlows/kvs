@@ -78,13 +78,15 @@ async fn test_restart() -> Result<(), reqwest::Error> {
 }
 
 #[tokio::test]
-async fn test_update() {
+async fn test_single() {
     let cluster_url = vec![String::from("localhost"), String::from("localhost"), String::from("localhost")];
     let cluster = Cluster{
         hosts: cluster_url,
         index: 1
     };
-    let res = http_req::update_cluster(&client, &CLUSTER_URLS[0], cluster).await;
+    let res = http_req::update_cluster(&client, &String::from("http://60.205.189.30:8080"), cluster).await;
+    println!("{:?}", res);
+    let res = http_req::init(&client, &String::from("http://60.205.189.30:8080")).await;
     println!("{:?}", res);
 }
 
