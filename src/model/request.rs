@@ -10,7 +10,7 @@ pub struct InsrtRequest{
 #[derive(Debug,Clone,Serialize, Deserialize,Eq,PartialEq)]
 pub struct Cluster{
     pub hosts:Vec<String>,
-    pub value: usize
+    pub index: usize
 }
 
 impl InsrtRequest {

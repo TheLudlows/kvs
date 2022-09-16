@@ -6,3 +6,5 @@ yum -y install gcc
 yum -y install gcc-c++
 yum -y install cmake
 yum -y install zip
+
+git clone https://github.com/TheLudlows/kvs.git

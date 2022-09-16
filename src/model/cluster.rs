@@ -1,5 +1,5 @@
-use std::fs::{create_dir, File, OpenOptions};
-use std::io::{BufReader, Read, Write};
+use std::fs::{create_dir, OpenOptions};
+use std::io::{ Read, Write};
 use std::path::PathBuf;
 use lazy_static::lazy_static;
 use log::info;
@@ -20,9 +20,9 @@ lazy_static! {
 pub fn set_cluster(c: Cluster) {
     let ptr_idx = ((*IDX).as_ref() as *const usize) as *mut usize;
     unsafe {
-        ptr_idx.write(c.value-1);
+        ptr_idx.write(c.index - 1);
 
-        let mut ptr = CLUSTER_URL.as_ptr() as * mut String;
+        let mut ptr = CLUSTER_URL.as_ptr() as *mut String;
         for s in c.hosts.iter() {
             let mut host = String::from("http://");
             host.push_str(s);
@@ -63,17 +63,15 @@ pub fn load_cluster_from_disk() {
     let mut body = String::new();
     f.read_to_string(&mut body).unwrap();
 
-    let cluster:Cluster = serde_json::from_str(&body).unwrap();
+    let cluster: Cluster = serde_json::from_str(&body).unwrap();
     set_cluster(cluster);
 }
 
 pub fn conf_path() -> PathBuf {
     let mut file = PathBuf::from(BASE_PATH);
-    if let Some(v) = read_port() {
-        file = file.join(v);
-        if !file.exists() {
-            create_dir(&file).unwrap();
-        }
+    file = file.join(read_port());
+    if !file.exists() {
+        create_dir(&file).unwrap();
     }
     return file.join(CLUSTER_FILE);
 }

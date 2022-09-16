@@ -1,8 +1,7 @@
 mod model;
 
-use std::{env, thread};
+use std::{thread};
 use std::net::SocketAddr;
-use std::str::FromStr;
 use std::sync::Arc;
 use log::info;
 use warp::Filter;
@@ -15,10 +14,7 @@ use crate::request::*;
 use crate::cluster::*;
 use crate::evn::read_port;
 use crate::store::*;
-use crate::http_req::*;
 
-#[macro_use]
-extern crate lazy_static;
 
 #[global_allocator]
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
@@ -136,11 +132,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
 
-    let port = match read_port() {
-        None => {String::from("8080")}
-        Some(v) => {v}
-    };
-
+    let port =  read_port();
     let address: SocketAddr = (String::from("0.0.0.0:") + &port).parse().unwrap();
 
     info!("rust server started at {}", address);

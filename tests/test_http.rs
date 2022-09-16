@@ -1,14 +1,7 @@
-use std::error::Error;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicI32, Ordering};
-use std::thread;
-use std::thread::JoinHandle;
-use std::time::{Duration, SystemTime};
 use chrono::Local;
-use dashmap::DashMap;
-use flatbuffers::Push;
-use reqwest::{Client, StatusCode};
-use tokio::time;
+use reqwest::{Client};
 use kvs::model::http_req;
 
 use kvs::model::request::*;
@@ -31,7 +24,7 @@ use std::collections::HashMap;
 
 lazy_static! {
     static ref CLUSTER_URLS: Vec<String> =  {
-        let mut v = vec![
+        let v = vec![
             String::from("http://localhost:8080"),
             String::from("http://localhost:8081"),
             String::from("http://localhost:8082"),
@@ -40,7 +33,7 @@ lazy_static! {
     };
 
     static ref CLUSTERS: Vec<String> =  {
-        let mut v = vec![
+        let v = vec![
             String::from("localhost:8080"),
             String::from("localhost:8081"),
             String::from("localhost:8082"),
@@ -68,11 +61,27 @@ async fn test_main() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
+#[tokio::test]
+async fn test_restart() -> Result<(), reqwest::Error> {
+    let start = Local::now().timestamp_millis();
+    test_add().await?;
+    test_query().await?;
+    test_list().await?;
+    test_batch().await?;
+    test_del().await?;
+    test_zadd().await?;
+    test_range().await?;
+    test_rmv().await?;
+    let end = Local::now().timestamp_millis();
+    println!("total cost :{}", (end - start));
+    Ok(())
+}
+
 async fn test_update_cluster() -> Result<(), reqwest::Error> {
     for i in 1..=3 {
         let cluster = Cluster {
             hosts: CLUSTERS.clone(),
-            value: i,
+            index: i,
         };
         http_req::update_cluster(&client, &CLUSTER_URLS[i - 1], cluster).await?;
     }

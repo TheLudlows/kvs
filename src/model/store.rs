@@ -8,8 +8,7 @@ use leveldb::database::Database;
 use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
 use log::{info};
-use reqwest::Error;
-use crate::model::{evn, http_req};
+use crate::model::{http_req};
 use crate::model::cluster::{CLUSTER_URL, IDX};
 use crate::model::key::MyKey;
 use crate::model::evn::*;
@@ -25,7 +24,6 @@ pub struct Kv {
 pub struct ZSet {
     map_arr: Vec<DashMap<String, SortValues>>,
     client: reqwest::Client,
-
 }
 
 #[derive(Debug, Clone)]
@@ -69,7 +67,7 @@ impl ZSet {
         info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
     }
     fn do_insert(&self, k: String, v: ScoreValue) {
-        let mut map = &self.map_arr[shard_idx(&k)];
+        let map = &self.map_arr[shard_idx(&k)];
         let mut e = map.entry(k).or_insert_with(|| SortValues::new());
 
         if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
@@ -158,7 +156,7 @@ impl Kv {
         }
         for pb in paths {
             info!("load data from {:?}", pb);
-            let mut op = Options::new();
+            let op = Options::new();
             let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
