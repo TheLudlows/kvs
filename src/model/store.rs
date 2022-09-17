@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::fs::create_dir;
 use std::path::{PathBuf};
+use std::sync::atomic::Ordering;
 
 use dashmap::DashMap;
 use fs_extra::dir::{copy, CopyOptions};
@@ -9,7 +10,7 @@ use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
 use log::{error, info};
 use crate::model::{http_req};
-use crate::model::cluster::{CLUSTER_URL, IDX};
+use crate::model::cluster::{CLUSTER_URL, IDX, LOADED};
 use crate::model::key::MyKey;
 use crate::model::evn::*;
 use crate::model::request::*;
@@ -137,6 +138,10 @@ impl Kv {
     }
 
     pub fn load_from_file(&self) {
+        if LOADED.load(Ordering::Acquire) {
+            info!("has loaded..");
+            return;
+        }
         let mut pb = PathBuf::from(BASE_PATH);
 
         pb.push(DATA_PATH);
@@ -174,6 +179,8 @@ impl Kv {
             }
             info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
         }
+
+        LOADED.store(true, Ordering::Release);
     }
 
     #[inline]

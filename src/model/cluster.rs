@@ -1,6 +1,8 @@
 use std::fs::{create_dir, OpenOptions};
 use std::io::{ Read, Write};
 use std::path::PathBuf;
+use std::sync::atomic;
+use std::sync::atomic::AtomicBool;
 use lazy_static::lazy_static;
 use log::info;
 use crate::model::evn::{BASE_PATH, CLUSTER_FILE, read_port};
@@ -16,6 +18,8 @@ lazy_static! {
     pub static ref IDX: Box<usize> = Box::new(999);
 
 }
+
+pub static LOADED: AtomicBool = AtomicBool::new(false);
 
 pub fn set_cluster(c: Cluster) {
     let ptr_idx = ((*IDX).as_ref() as *const usize) as *mut usize;
