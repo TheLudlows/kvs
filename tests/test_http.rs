@@ -26,7 +26,7 @@ lazy_static! {
     static ref CLUSTER_URLS: Vec<String> =  {
         let v = vec![
             String::from("http://172.16.0.158:8080"),
-            String::from("http://172.16.0.164:8080"),
+            String::from("http://172.16.0.164:8080"),ß
             String::from("http://172.16.0.187:8080"),
         ];
         v
