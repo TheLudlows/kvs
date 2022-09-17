@@ -25,18 +25,18 @@ use std::collections::HashMap;
 lazy_static! {
     static ref CLUSTER_URLS: Vec<String> =  {
         let v = vec![
-            String::from("http://localhost:8080"),
-            String::from("http://localhost:8081"),
-            String::from("http://localhost:8082"),
+            String::from("http://172.16.0.158:8080"),
+            String::from("http://172.16.0.164:8081"),
+            String::from("http://172.16.0.187:8082"),
         ];
         v
     };
 
     static ref CLUSTERS: Vec<String> =  {
         let v = vec![
-            String::from("localhost:8080"),
-            String::from("localhost:8081"),
-            String::from("localhost:8082"),
+            String::from("172.16.0.158"),
+            String::from("172.16.0.164"),
+            String::from("172.16.0.187"),
         ];
         v
     };
@@ -44,7 +44,7 @@ lazy_static! {
 }
 
 #[tokio::test]
-async fn test_main() -> Result<(), reqwest::Error> {
+pub async fn test_main() -> Result<(), reqwest::Error> {
     let start = Local::now().timestamp_millis();
     test_update_cluster().await?;
     test_init().await?;
@@ -61,6 +61,27 @@ async fn test_main() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
+/**
+ 172.16.0.158
+172.16.0.164
+ 172.16.0.187
+ */
+
+/*#[tokio::test]
+pub async  fn test_single() {
+    let cluster_url = vec![String::from("localhost"), String::from("localhost"), String::from("localhost")];
+    let cluster = Cluster{
+        hosts: cluster_url,
+        index: 1
+    };
+    let res = http_req::update_cluster(&client, &String::from("http://60.205.189.30:8080"), cluster).await;
+    println!("{:?}", res);
+    let res = http_req::init(&client, &String::from("http://60.205.189.30:8080")).await;
+    println!("{:?}", res);
+
+    let res = http_req::query(&client, &String::from("http://60.205.189.30:8080"), &String::from("k1")).await;
+    println!("{:?}", res);
+}
 #[tokio::test]
 async fn test_restart() -> Result<(), reqwest::Error> {
     let start = Local::now().timestamp_millis();
@@ -76,21 +97,9 @@ async fn test_restart() -> Result<(), reqwest::Error> {
     println!("total cost :{}", (end - start));
     Ok(())
 }
+*/
 
-#[tokio::test]
-async fn test_single() {
-    let cluster_url = vec![String::from("localhost"), String::from("localhost"), String::from("localhost")];
-    let cluster = Cluster{
-        hosts: cluster_url,
-        index: 1
-    };
-    let res = http_req::update_cluster(&client, &String::from("http://60.205.189.30:8080"), cluster).await;
-    println!("{:?}", res);
-    let res = http_req::init(&client, &String::from("http://60.205.189.30:8080")).await;
-    println!("{:?}", res);
-}
-
-async fn test_update_cluster() -> Result<(), reqwest::Error> {
+pub async fn test_update_cluster() -> Result<(), reqwest::Error> {
     for i in 1..=3 {
         let cluster = Cluster {
             hosts: CLUSTERS.clone(),
@@ -102,14 +111,14 @@ async fn test_update_cluster() -> Result<(), reqwest::Error> {
 }
 
 
-async fn test_init() -> Result<(), reqwest::Error> {
+pub async fn test_init() -> Result<(), reqwest::Error> {
     for s in CLUSTER_URLS.iter() {
         http_req::init(&client, s).await?;
     }
     Ok(())
 }
 
-async fn test_add() -> Result<(), reqwest::Error> {
+pub async fn test_add() -> Result<(), reqwest::Error> {
     let mut n = 0;
     for host in CLUSTER_URLS.iter() {
         for i in n..n + ADD_COUNT / 3 {
@@ -122,7 +131,7 @@ async fn test_add() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn test_query() -> Result<(), reqwest::Error> {
+pub async fn test_query() -> Result<(), reqwest::Error> {
     let mut n = 0;
     for host in CLUSTER_URLS.iter() {
         for i in n..n + (ADD_COUNT / 3) {
@@ -134,7 +143,7 @@ async fn test_query() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn test_list() -> Result<(), reqwest::Error> {
+pub async fn test_list() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
         let count = Arc::new(AtomicI32::from(0));
         let mut n;
@@ -154,7 +163,7 @@ async fn test_list() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn test_batch() -> Result<(), reqwest::Error> {
+pub async fn test_batch() -> Result<(), reqwest::Error> {
     let mut n = ADD_COUNT;
     for host in CLUSTER_URLS.iter() {
         let mut v = Vec::new();
@@ -168,7 +177,7 @@ async fn test_batch() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn test_del() -> Result<(), reqwest::Error> {
+pub async fn test_del() -> Result<(), reqwest::Error> {
     let mut n = DEL_COUNT;
     for host in CLUSTER_URLS.iter() {
         for i in n..n + 10 {
@@ -188,7 +197,7 @@ async fn test_del() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn test_zadd() -> Result<(), reqwest::Error> {
+pub async fn test_zadd() -> Result<(), reqwest::Error> {
     let mut n = 0;
     for host in CLUSTER_URLS.iter() {
         for i in n..n + ZADD_COUNT / 3 {
@@ -203,19 +212,19 @@ async fn test_zadd() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn test_range() -> Result<(), reqwest::Error> {
+pub async fn test_range() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
         for i in 0..ZADD_COUNT {
             let score = ScoreRange::new(0, (ZADD_SUB_COUNT / 2) as u32);
             let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), score).await?;
-            if res.len()!= (ZADD_SUB_COUNT / 2 + 1) as usize {
+            if res.len() != (ZADD_SUB_COUNT / 2 + 1) as usize {
                 println!("{}", &(String::from("key") + &i.to_string()))
             }
             assert_eq!(res.len(), (ZADD_SUB_COUNT / 2 + 1) as usize);
 
             let score = ScoreRange::new(0, (ZADD_SUB_COUNT) as u32);
             let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), score).await?;
-            if res.len()!= (ZADD_SUB_COUNT) as usize {
+            if res.len() != (ZADD_SUB_COUNT) as usize {
                 println!("{}", &(String::from("key") + &i.to_string()))
             }
             assert_eq!(res.len(), (ZADD_SUB_COUNT) as usize);
@@ -224,7 +233,7 @@ async fn test_range() -> Result<(), reqwest::Error> {
     Ok(())
 }
 
-async fn test_rmv() -> Result<(), reqwest::Error> {
+pub async fn test_rmv() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
         for i in 0..ZRMV_COUNT {
             http_req::rmv(&client, host, &(String::from("key") + &i.to_string()), &String::from("0")).await?;

@@ -9,7 +9,7 @@ pub static data_files: [&'static str; 3] = ["/Users/liuchao/data1", "/Users/liuc
 #[cfg(target_os = "linux")]
 pub static BASE_PATH: &str = "/data";
 #[cfg(target_os = "linux")]
-pub static data_files: [&'static str; 3] = ["/data1/data1", "/data2/data2", "/data3/data3"];
+pub static data_files: [&'static str; 3] = ["/data2/data1", "/data2/data2", "/data2/data3"];
 
 
 pub static total_data_files: [&'static str; 3] = ["data1", "data2", "data3"];
