@@ -67,7 +67,8 @@ pub async fn test_main() -> Result<(), reqwest::Error> {
  172.16.0.187
  */
 
-/**#[tokio::test]
+/**
+#[tokio::test]
 pub async  fn test_single() {
     let cluster_url = vec![String::from("localhost"), String::from("localhost"), String::from("localhost")];
     let cluster = Cluster{
@@ -86,6 +87,7 @@ pub async  fn test_single() {
 #[tokio::test]
 async fn test_restart() -> Result<(), reqwest::Error> {
     let start = Local::now().timestamp_millis();
+    test_init().await?;
     test_add().await?;
     test_query().await?;
     test_list().await?;
@@ -98,7 +100,6 @@ async fn test_restart() -> Result<(), reqwest::Error> {
     println!("total cost :{}", (end - start));
     Ok(())
 }
-*/
 
 pub async fn test_update_cluster() -> Result<(), reqwest::Error> {
     for i in 1..=3 {
