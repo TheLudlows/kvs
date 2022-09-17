@@ -150,7 +150,7 @@ impl Kv {
             copy(data_files[0], &pb, &options).unwrap();
             copy(data_files[1], &pb, &options).unwrap();
             copy(data_files[2], &pb, &options).unwrap();
-            info!("copy dir to {:?}", pb);
+            info!("copy dir {:?} to {:?}", data_files, pb);
         }
         let mut paths = vec![];
         for s in total_data_files {
