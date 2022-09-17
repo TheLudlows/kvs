@@ -11,7 +11,6 @@ use leveldb::options::{Options, ReadOptions};
 use log::{error, info};
 use crate::model::{http_req};
 use crate::model::cluster::{CLUSTER_URL, IDX, LOADED};
-use crate::model::key::MyKey;
 use crate::model::evn::*;
 use crate::model::request::*;
 
@@ -175,7 +174,10 @@ impl Kv {
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
                 // 批量？
-                self.insert_local(InsrtRequest::new(k.0, String::from_utf8(v).unwrap()));
+                let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
+                //info!("{:?}",ins );
+                self.insert_local(ins);
+
             }
             info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
         }

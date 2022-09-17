@@ -21,6 +21,8 @@ lazy_static! {
 
 pub static LOADED: AtomicBool = AtomicBool::new(false);
 
+
+
 pub fn set_cluster(c: Cluster) {
     let ptr_idx = ((*IDX).as_ref() as *const usize) as *mut usize;
     unsafe {
