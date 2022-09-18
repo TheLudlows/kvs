@@ -162,7 +162,7 @@ impl Kv {
             info!("load data from {:?}", pb);
             let mut op = Options::new();
             //op.create_if_missing = true;
-            let result: Result<Database<MyKey>, Error> = Database::open(pb.as_path(), op);
+            let result: Result<Database<MyKey>, _> = Database::open(pb.as_path(), op);
             if !result.is_ok() {
                 return false;
             }
