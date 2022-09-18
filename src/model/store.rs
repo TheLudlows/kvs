@@ -160,7 +160,7 @@ impl Kv {
         for pb in paths {
             info!("load data from {:?}", pb);
             let mut op = Options::new();
-            op.create_if_missing = true;
+            //op.create_if_missing = true;
             let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
