@@ -25,8 +25,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Kv::new());
     let zset = Arc::new(ZSet::new());
     init_file("./log4rs.yml", Default::default())?;
-    //load_cluster_from_disk();
-    //kv.load_from_file();
+    load_cluster_from_disk();
+    kv.load_from_file();
     // load cluster info
     let kv = warp::any().map(move || kv.clone());
     let zset = warp::any().map(move || zset.clone());
