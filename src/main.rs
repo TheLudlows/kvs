@@ -41,9 +41,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let init_route = warp::get().and(warp::path("init"))
         .and(kv.clone())
-        .map(|kv: Arc<Kv>| {
-            kv.load_from_file();
-            return format!("ok");
+        .and_then(|kv: Arc<Kv>| async move {
+            let r = kv.load_from_file();
+            if r {
+                return Ok(format!("ok"));
+            } else {
+                return Err(warp::reject::not_found());
+            }
         });
 
     let query = warp::get().and(warp::path("query"))

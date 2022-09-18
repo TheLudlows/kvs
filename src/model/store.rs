@@ -1,4 +1,5 @@
 use std::collections::{BTreeMap, HashMap};
+use std::error::Error;
 use std::fs::create_dir;
 use std::path::{PathBuf};
 use std::sync::atomic::Ordering;
@@ -136,14 +137,14 @@ impl Kv {
         }
     }
 
-    pub fn load_from_file(&self) {
+    pub fn load_from_file(&self) -> bool{
         if LOADED.load(Ordering::Acquire) {
             info!("has loaded..");
-            return;
+            return false;
         }
         if **IDX == 999 {
             info!("no cluster info");
-            return;
+            return false;
         }
         let mut pb = PathBuf::from(BASE_PATH).join(DATA_PATH);
         let mut paths = vec![];
@@ -161,7 +162,11 @@ impl Kv {
             info!("load data from {:?}", pb);
             let mut op = Options::new();
             //op.create_if_missing = true;
-            let database: Database<MyKey> = Database::open(pb.as_path(), op).unwrap();
+            let result: Result<Database<MyKey>, Error> = Database::open(pb.as_path(), op);
+            if !result.is_ok() {
+                return false;
+            }
+            let database = result.unwrap();
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
                 // 批量？
@@ -174,6 +179,7 @@ impl Kv {
         }
 
         LOADED.store(true, Ordering::Release);
+        return true;
     }
 
     #[inline]
