@@ -17,6 +17,8 @@ static ZADD_SUB_COUNT: i32 = 10;
 static ZRMV_COUNT: i32 = 10;
 
 
+
+
 #[macro_use]
 extern crate lazy_static;
 
@@ -24,30 +26,30 @@ use std::collections::HashMap;
 
 lazy_static! {
     static ref CLUSTER_URLS: Vec<String> =  {
-      /** let v = vec![
+      let v = vec![
             String::from("http://172.16.0.158:8080"),
             String::from("http://172.16.0.164:8080"),
             String::from("http://172.16.0.187:8080"),
-        ];*/
-           let v = vec![
+        ];
+           /** let v = vec![
             String::from("http://localhost:8080"),
             String::from("http://localhost:8081"),
             String::from("http://localhost:8082"),
-        ];
+        ];*/
         v
     };
 
     static ref CLUSTERS: Vec<String> =  {
-       /* let v = vec![
+        let v = vec![
             String::from("172.16.0.158"),
             String::from("172.16.0.164"),
             String::from("172.16.0.187"),
-        ];*/
-         let v = vec![
+        ];
+        /**let v = vec![
             String::from("localhost:8080"),
             String::from("localhost:8081"),
             String::from("localhost:8082"),
-        ];
+        ];*/
         v
     };
     static ref client:Client = Client::new();
