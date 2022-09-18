@@ -26,7 +26,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zset = Arc::new(ZSet::new());
     init_file("./log4rs.yml", Default::default())?;
     load_cluster_from_disk();
-    //kv.load_from_file();
+    kv.load_from_file();
     // load cluster info
     let kv = warp::any().map(move || kv.clone());
     let zset = warp::any().map(move || zset.clone());
@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let init_route = warp::get().and(warp::path("init"))
         .and(kv.clone())
         .map(|kv: Arc<Kv>| {
-            //kv.load_from_file();
+            kv.load_from_file();
             return format!("ok");
         });
 
