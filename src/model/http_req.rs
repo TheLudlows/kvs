@@ -2,13 +2,14 @@ use reqwest::{Client, StatusCode};
 use crate::model::request::{Cluster, InsrtRequest, ScoreRange, ScoreValue};
 
 
-pub async fn update_cluster(client: &Client, host: &String, cluster: Cluster) -> Result<(), reqwest::Error> {
+pub async fn update_cluster(client: &Client, host: &String, cluster: Cluster) -> Result<String, reqwest::Error> {
     let _rep = client.post(String::from(host) + "/updateCluster")
         .json(&cluster)
         .send()
+        .await?
+        .text()
         .await?;
-    println!("{:?}", _rep);
-    Ok(())
+    Ok(_rep)
 }
 
 pub async fn init(client: &Client, host: &String) -> Result<(), reqwest::Error> {

@@ -24,11 +24,17 @@ use std::collections::HashMap;
 
 lazy_static! {
     static ref CLUSTER_URLS: Vec<String> =  {
-        let v = vec![
+       let v = vec![
             String::from("http://172.16.0.158:8080"),
             String::from("http://172.16.0.164:8080"),
             String::from("http://172.16.0.187:8080"),
         ];
+        /**
+           let v = vec![
+            String::from("http://localhost:8080"),
+            String::from("http://localhost:8081"),
+            String::from("http://localhost:8082"),
+        ];*/
         v
     };
 
@@ -38,6 +44,11 @@ lazy_static! {
             String::from("172.16.0.164"),
             String::from("172.16.0.187"),
         ];
+         /**let v = vec![
+            String::from("localhost:8080"),
+            String::from("localhost:8081"),
+            String::from("localhost:8082"),
+        ];*/
         v
     };
     static ref client:Client = Client::new();
@@ -107,7 +118,8 @@ pub async fn test_update_cluster() -> Result<(), reqwest::Error> {
             hosts: CLUSTERS.clone(),
             index: i,
         };
-        http_req::update_cluster(&client, &CLUSTER_URLS[i - 1], cluster).await?;
+        let res = http_req::update_cluster(&client, &CLUSTER_URLS[i - 1], cluster).await?;
+        assert_eq!(res, "ok");
     }
     Ok(())
 }
@@ -134,13 +146,11 @@ pub async fn test_add() -> Result<(), reqwest::Error> {
 }
 
 pub async fn test_query() -> Result<(), reqwest::Error> {
-    let mut n = 0;
     for host in CLUSTER_URLS.iter() {
-        for i in n..n + (ADD_COUNT / 3) {
+        for i in 0..ADD_COUNT {
             let res = http_req::query(&client, host, &(String::from("key") + &i.to_string())).await?.unwrap();
             assert_eq!(res, String::from("val") + i.to_string().as_str());
         }
-        n += ADD_COUNT / 3;
     }
     Ok(())
 }

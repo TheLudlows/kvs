@@ -55,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Err(warp::reject::not_found())
                 }
                 Some(v) => {
+                    println!("{}", &v);
                     Ok(v)
                 }
             }

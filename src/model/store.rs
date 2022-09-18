@@ -229,9 +229,7 @@ impl Kv {
     pub async fn get(&self, k: &String) -> Option<String> {
         let cluster_idx = cluster_idx(k);
         return if cluster_idx == **IDX {
-            (&self.map_arr[shard_idx(&k)]).get(k)
-                //.map(|e| e.value().to_string())
-                .map(|e| e.to_string())
+           self.local_get(k)
         } else {
             //info!("get to {}, cur{}", cluster_idx, **IDX);
             match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], k).await {
