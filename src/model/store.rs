@@ -196,8 +196,6 @@ impl Kv {
     pub fn insert_local(&self, req: InsrtRequest) {
         let cluster_idx = cluster_idx(&req.key);
         if cluster_idx == **IDX {
-
-            info!("insert local {:?}", req);
             self.map_arr[shard_idx(&req.key)].insert(req.key, req.value);
         }
     }
