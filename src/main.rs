@@ -42,7 +42,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let init_route = warp::get().and(warp::path("init"))
         .and(kv.clone())
         .map(|kv: Arc<Kv>| {
-            kv.load_from_file();
+            //kv.load_from_file();
             return format!("ok");
         });
 
