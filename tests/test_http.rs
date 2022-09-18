@@ -92,8 +92,8 @@ pub async  fn test_single() {
     let res = http_req::init(&client, &String::from("http://60.205.189.30:8080")).await;
     println!("{:?}", res);
 
-    let res = http_req::query(&client, &String::from("http://60.205.189.30:8080"), &String::from("k1")).await;
-    println!("{:?}", res);
+    //let res = http_req::query(&client, &String::from("http://60.205.189.30:8080"), &String::from("k1")).await;
+    //println!("{:?}", res);
 }
 
 #[tokio::test]
