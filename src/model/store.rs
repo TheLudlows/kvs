@@ -141,31 +141,22 @@ impl Kv {
             info!("has loaded..");
             return;
         }
-        let mut pb = PathBuf::from(BASE_PATH);
-
-        pb.push(DATA_PATH);
-
-        if !pb.exists() {
-            //第一次加载
-            create_dir(&pb).unwrap();
-            let mut options = CopyOptions::new();
-            options.skip_exist = true;
-
-            copy(data_files[0], &pb, &options).unwrap();
-            copy(data_files[1], &pb, &options).unwrap();
-            copy(data_files[2], &pb, &options).unwrap();
-            info!("copy dir {:?} to {:?}", data_files, pb);
-        }
-        let mut paths = vec![];
-        for s in total_data_files {
-            let mut data_path = PathBuf::from(&pb);
-            data_path.push(s);
-            paths.push(data_path)
-        }
-
         if **IDX == 999 {
+            info!("no cluster info");
             return;
         }
+        let mut pb = PathBuf::from(BASE_PATH).join(DATA_PATH);
+        let mut paths = vec![];
+
+        if !pb.exists() {
+            create_dir(&pb).unwrap();
+            for s in data_files {
+                paths.push(PathBuf::from(s))
+            }
+        } else {
+            paths.push(pb);
+        }
+
         for pb in paths {
             info!("load data from {:?}", pb);
             let mut op = Options::new();

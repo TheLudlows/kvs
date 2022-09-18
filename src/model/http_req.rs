@@ -25,7 +25,11 @@ pub async fn add(client: &Client, host: &String, req: InsrtRequest) -> Result<()
         .json(&req)
         .send()
         .await?;
-    Ok(())
+    if _rep.status() == StatusCode::OK{
+        return Ok(());
+    } else {
+        panic!("err");
+    }
 }
 
 pub async fn query(client: &Client, host: &String, key: &String) -> Result<Option<String>, reqwest::Error> {

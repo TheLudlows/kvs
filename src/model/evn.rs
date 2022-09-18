@@ -12,8 +12,6 @@ pub static BASE_PATH: &str = "/conf";
 pub static data_files: [&'static str; 3] = ["/data2/data1", "/data2/data2", "/data2/data3"];
 
 
-pub static total_data_files: [&'static str; 3] = ["data1", "data2", "data3"];
-
 pub static DATA_PATH: &str = "total_data";
 
 pub static CLUSTER_FILE: &str = "cluster";
