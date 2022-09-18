@@ -41,13 +41,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let init_route = warp::get().and(warp::path("init"))
         .and(kv.clone())
-        .and_then(|kv: Arc<Kv>| async move {
-            let r = kv.load_from_file();
-            if r {
-                return Ok(format!("ok"));
-            } else {
-                return Err(warp::reject::not_found());
-            }
+        .map(|kv: Arc<Kv>| {
+            return kv.load_from_file();
         });
 
     let query = warp::get().and(warp::path("query"))
@@ -136,7 +131,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
 
-    let port =  read_port();
+    let port = read_port();
     let address: SocketAddr = (String::from("0.0.0.0:") + &port).parse().unwrap();
 
     info!("rust server started at {}", address);

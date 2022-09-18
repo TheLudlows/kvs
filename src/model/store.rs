@@ -137,14 +137,12 @@ impl Kv {
         }
     }
 
-    pub fn load_from_file(&self) -> bool{
+    pub fn load_from_file(&self) -> String{
         if LOADED.load(Ordering::Acquire) {
-            info!("has loaded..");
-            return false;
+            return String::from("ok");
         }
         if **IDX == 999 {
-            info!("no cluster info");
-            return false;
+            return String::from("no cluster info");
         }
         let mut pb = PathBuf::from(BASE_PATH).join(DATA_PATH);
         let mut paths = vec![];
@@ -164,7 +162,7 @@ impl Kv {
             //op.create_if_missing = true;
             let result: Result<Database<MyKey>, _> = Database::open(pb.as_path(), op);
             if !result.is_ok() {
-                return false;
+                return String::from(format!("{:?}", result.err()));
             }
             let database = result.unwrap();
             let mut it = database.iter(ReadOptions::new());
@@ -179,7 +177,7 @@ impl Kv {
         }
 
         LOADED.store(true, Ordering::Release);
-        return true;
+        return String::from("ok");
     }
 
     #[inline]
