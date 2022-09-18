@@ -79,7 +79,7 @@ pub async fn test_main() -> Result<(), reqwest::Error> {
  172.16.0.187
  */
 
-/**
+
 #[tokio::test]
 pub async  fn test_single() {
     let cluster_url = vec![String::from("localhost"), String::from("localhost"), String::from("localhost")];
@@ -95,7 +95,7 @@ pub async  fn test_single() {
     let res = http_req::query(&client, &String::from("http://60.205.189.30:8080"), &String::from("k1")).await;
     println!("{:?}", res);
 }
-*/
+
 #[tokio::test]
 async fn test_restart() -> Result<(), reqwest::Error> {
     let start = Local::now().timestamp_millis();
