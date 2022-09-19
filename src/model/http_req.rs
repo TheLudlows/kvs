@@ -1,3 +1,4 @@
+use bytes::Bytes;
 use reqwest::{Client, StatusCode};
 use crate::model::request::{Cluster, InsrtRequest, ScoreRange, ScoreValue};
 
@@ -43,7 +44,7 @@ pub async fn query(client: &Client, host: &String, key: &String) -> Result<Optio
     Ok(Some(resp.text().await?))
 }
 
-pub async fn list(client: &Client, host: &String, keys: &Vec<String>) -> Result<Vec<InsrtRequest>, reqwest::Error> {
+pub async fn list(client: &Client, host: &String, keys: &Vec<Bytes>) -> Result<Vec<InsrtRequest>, reqwest::Error> {
     let rep: Vec<InsrtRequest> = client.post(String::from(host) + "/list")
         .json(&keys)
         .send()
@@ -53,7 +54,7 @@ pub async fn list(client: &Client, host: &String, keys: &Vec<String>) -> Result<
     Ok(rep)
 }
 
-pub async fn batch(client: &Client, host: &String, req: Vec<InsrtRequest>) -> Result<(), reqwest::Error> {
+pub async fn batch(client: &Client, host: &String, req: Vec<Bytes>) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/batch")
         .json(&req)
         .send()

@@ -1,6 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{PathBuf};
 use std::sync::atomic::Ordering;
+use bytes::Bytes;
 
 use dashmap::DashMap;
 use leveldb::database::Database;
@@ -14,7 +15,7 @@ use crate::model::request::*;
 
 #[derive(Debug, Clone)]
 pub struct Store {
-    map_arr: Vec<DashMap<String, String>>,
+    map_arr: Vec<DashMap<Bytes, Bytes>>,
     zset_arr: Vec<DashMap<String, SortValues>>,
     client: reqwest::Client,
 }
@@ -79,7 +80,7 @@ impl Store {
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
                 // 批量？
-                let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
+                let ins = InsrtRequest::new(Bytes::from(k.0), Bytes::from(v));
                 //info!("{:?}",ins );
                 self.insert_local(ins);
             }
@@ -93,7 +94,7 @@ impl Store {
 
 impl Store {
     pub async fn zset_insert(&self, k: String, v: ScoreValue) {
-        let cluster_idx = cluster_idx(&k);
+        let cluster_idx = cluster_idx(&k.as_bytes());
         if cluster_idx == **IDX {
             self.do_insert(k, v);
         } else {
@@ -107,7 +108,7 @@ impl Store {
         //info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
     }
     fn do_insert(&self, k: String, v: ScoreValue) {
-        let map = &self.zset_arr[shard_idx(&k)];
+        let map = &self.zset_arr[shard_idx(&k.as_bytes())];
         let mut e = map.entry(k).or_insert_with(|| SortValues::new());
 
         if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
@@ -121,9 +122,9 @@ impl Store {
 
     pub async fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
         let mut ret = Vec::new();
-        let cluster_idx = cluster_idx(k);
+        let cluster_idx = cluster_idx(k.as_bytes());
         if cluster_idx == **IDX {
-            let map = &self.zset_arr[shard_idx(&k)];
+            let map = &self.zset_arr[shard_idx(k.as_bytes())];
             if let Some(vs) = map.get(k) {
                 for v in vs.score_map.range(range.min_score..=range.max_score).into_iter() {
                     ret.push(ScoreValue::new(*v.0, v.1.clone()))
@@ -142,9 +143,9 @@ impl Store {
     }
 
     pub async fn remove(&self, k: &String, v: &String) {
-        let cluster_idx = cluster_idx(k);
+        let cluster_idx = cluster_idx(k.as_bytes());
         if cluster_idx == **IDX {
-            let map = &self.zset_arr[shard_idx(&k)];
+            let map = &self.zset_arr[shard_idx(k.as_bytes())];
             if let Some(mut e) = map.get_mut(k) {
                 if let Some(v) = &e.value_map.remove(v) {
                     e.score_map.remove(v);
@@ -186,9 +187,9 @@ impl Store {
 
     #[inline]
     pub async fn del(&self, k: &String) {
-        let cluster_idx = cluster_idx(k);
+        let cluster_idx = cluster_idx(k.as_bytes());
         if cluster_idx == **IDX {
-            self.map_arr[shard_idx(&k)].remove(k);
+            self.map_arr[shard_idx(k.as_bytes())].remove(k.as_bytes());
         } else {
             match http_req::del(&self.client, &CLUSTER_URL[cluster_idx], k).await {
                 Ok(_) => {}
@@ -201,13 +202,13 @@ impl Store {
     }
 
     #[inline]
-    pub async fn get(&self, k: &String) -> Option<String> {
-        let cluster_idx = cluster_idx(k);
+    pub async fn get(&self, k: &Bytes) -> Option<String> {
+        let cluster_idx = cluster_idx(&k);
         return if cluster_idx == **IDX {
            self.local_get(k)
         } else {
             //info!("get to {}, cur{}", cluster_idx, **IDX);
-            match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], k).await {
+            match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], &String::from_utf8(k.to_vec()).unwrap()).await {
                 Ok(v) => {
                     match v {
                         None => None,
@@ -223,13 +224,13 @@ impl Store {
         };
     }
 
-    pub fn local_get(&self, k :&String) -> Option<String> {
-        (&self.map_arr[shard_idx(&k)]).get(k)
+    pub fn local_get(&self, k :&Bytes) -> Option<String> {
+        (&self.map_arr[shard_idx(&k)]).get(&k)
             //.map(|e| e.value().to_string())
             .map(|e| e.to_string())
     }
     #[inline]
-    pub async fn list(&self, keys: Vec<String>) -> Vec<InsrtRequest> {
+    pub async fn list(&self, keys: Vec<Bytes>) -> Vec<InsrtRequest> {
         let mut ret = Vec::new();
         let mut vec_group = vec![];
         for _ in 0..CLUSTER_NUM {
@@ -250,7 +251,7 @@ impl Store {
                     match self.local_get(k) {
                         None => {}
                         Some(v) => {
-                            ret.push(InsrtRequest::new(k.clone(), v));
+                            ret.push(InsrtRequest::new(Bytes::from(k), Bytes::from(v)));
                         }
                     }
                 }

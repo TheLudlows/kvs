@@ -22,7 +22,7 @@ pub const DEFAULT_KV_SIZE: usize = 1024 * 8;
 pub const CLUSTER_NUM: usize = 3;
 
 #[inline]
-pub fn shard_idx(s: &String) -> usize {
+pub fn shard_idx(s: &[u8]) -> usize {
     if s.len() == 0 {
         return 0;
     }
@@ -31,7 +31,7 @@ pub fn shard_idx(s: &String) -> usize {
 }
 
 #[inline]
-pub fn cluster_idx(s: &String) -> usize {
+pub fn cluster_idx(s: &[u8]) -> usize {
     if s.len() == 0 {
         return 0;
     }
