@@ -143,6 +143,7 @@ impl Kv {
             return String::from("ok");
         }
         if **IDX == 999 {
+            info!("no cluster info");
             return String::from("no cluster info");
         }
         let mut pb = PathBuf::from(BASE_PATH).join(DATA_PATH);
@@ -153,7 +154,8 @@ impl Kv {
             for s in data_files {
                 let r = copy(data_files[0], &pb, &op);
                 if !r.is_ok() {
-                    return format!("{:?}", r.err());
+                    info!("copy {} failed {:?}", s, r.unwrap_err());
+                    return format!("copy failed");
                 }
             }
         }
@@ -169,7 +171,8 @@ impl Kv {
             //op.create_if_missing = true;
             let result: Result<Database<MyKey>, _> = Database::open(pb.as_path(), op);
             if !result.is_ok() {
-                return String::from(format!("{:?}", result.err()));
+                info!("open {:?}, failed {:?}", pb, result.err());
+                return format!("open failed");
             }
             let database = result.unwrap();
             let mut it = database.iter(ReadOptions::new());
