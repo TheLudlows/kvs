@@ -9,14 +9,9 @@ pub static data_files: [&'static str; 3] = ["/Users/liuchao/data1", "/Users/liuc
 #[cfg(target_os = "linux")]
 pub static BASE_PATH: &str = "/conf";
 #[cfg(target_os = "linux")]
-pub static data_files: [&'static str; 3] = ["/data2/data1", "/data2/data2", "/data2/data3"];
-
-
-pub static DATA_PATH: &str = "total_data";
+pub static data_files: [&'static str; 3] = ["/data/data1", "/data/data2", "/data/data3"];
 
 pub static CLUSTER_FILE: &str = "cluster";
-
-pub static COPY_PATHS:[&'static str; 3] = ["data1", "data2", "data3"];
 
 pub const SHARD_NUM: usize = 8;
 

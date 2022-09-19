@@ -146,23 +146,10 @@ impl Kv {
             info!("no cluster info");
             return String::from("no cluster info");
         }
-        let mut pb = PathBuf::from(BASE_PATH).join(DATA_PATH);
 
-        if !pb.exists() {
-            create_dir(&pb).unwrap();
-            let op = CopyOptions::new();
-            for s in data_files {
-                let r = copy(s, &pb, &op);
-                if !r.is_ok() {
-                    info!("copy {} failed {:?}", s, r.unwrap_err());
-                    return format!("copy failed");
-                }
-            }
-        }
         let mut paths = vec![];
-        for ps in COPY_PATHS {
-            let p = pb.join(ps);
-            paths.push(p);
+        for ps in data_files {
+            paths.push(PathBuf::from(ps));
         }
 
         for pb in paths {
