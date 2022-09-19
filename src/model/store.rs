@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, HashMap};
 use std::path::{PathBuf};
+use std::str::from_utf8;
 use std::sync::atomic::Ordering;
 use bytes::Bytes;
 
@@ -186,7 +187,7 @@ impl Store {
     }
 
     #[inline]
-    pub async fn del(&self, k: &String) {
+    pub async fn del(&self, k: &str) {
         let cluster_idx = cluster_idx(k.as_bytes());
         if cluster_idx == **IDX {
             self.map_arr[shard_idx(k.as_bytes())].remove(k.as_bytes());
@@ -208,7 +209,7 @@ impl Store {
            self.local_get(k)
         } else {
             //info!("get to {}, cur{}", cluster_idx, **IDX);
-            match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], &String::from_utf8(k.to_vec()).unwrap()).await {
+            match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], from_utf8(k).unwrap()).await {
                 Ok(v) => {
                     match v {
                         None => None,

@@ -72,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let del = warp::path("del")
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .then(|k, kv: Arc<Store>| async move {
+        .then(|k:String, kv: Arc<Store>| async move {
             //info!("del key{:?}", k);
             kv.del(&k).await;
             return warp::reply::reply();
