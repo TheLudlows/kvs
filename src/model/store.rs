@@ -10,6 +10,7 @@ use leveldb::database::Database;
 use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
 use log::{error, info};
+use warp::fs::file;
 use crate::model::{http_req};
 use crate::model::cluster::{CLUSTER_URL, IDX, LOADED};
 use crate::model::evn::*;
@@ -145,15 +146,21 @@ impl Kv {
             return String::from("no cluster info");
         }
         let mut pb = PathBuf::from(BASE_PATH).join(DATA_PATH);
-        let mut paths = vec![];
 
         if !pb.exists() {
             create_dir(&pb).unwrap();
+            let op = CopyOptions::new();
             for s in data_files {
-                paths.push(PathBuf::from(s))
+                let r = copy(data_files[0], &pb, &op);
+                if !r.is_ok() {
+                    return format!("{:?}", r.err());
+                }
             }
-        } else {
-            paths.push(pb);
+        }
+        let mut paths = vec![];
+        for ps in COPY_PATHS {
+            let p = pb.join(ps);
+            paths.push(p);
         }
 
         for pb in paths {

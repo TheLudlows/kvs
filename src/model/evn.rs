@@ -16,6 +16,8 @@ pub static DATA_PATH: &str = "total_data";
 
 pub static CLUSTER_FILE: &str = "cluster";
 
+pub static COPY_PATHS:[&'static str; 3] = ["data1", "data2", "data3"];
+
 pub const SHARD_NUM: usize = 8;
 
 pub const DEFAULT_SIZE: usize = 1024 * 8;
