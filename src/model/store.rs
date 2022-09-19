@@ -13,14 +13,9 @@ use crate::model::evn::*;
 use crate::model::request::*;
 
 #[derive(Debug, Clone)]
-pub struct Kv {
+pub struct Store {
     map_arr: Vec<DashMap<String, String>>,
-    client: reqwest::Client,
-}
-
-#[derive(Debug, Clone)]
-pub struct ZSet {
-    map_arr: Vec<DashMap<String, SortValues>>,
+    zset_arr: Vec<DashMap<String, SortValues>>,
     client: reqwest::Client,
 }
 
@@ -40,101 +35,24 @@ impl SortValues {
 }
 
 
-impl ZSet {
-    pub fn new() -> Self {
+impl Store {
+    pub fn new() -> Store {
         let mut vec = Vec::new();
+        for _ in 0..SHARD_NUM {
+            vec.push(DashMap::with_capacity(DEFAULT_KV_SIZE));
+        }
+        let mut set_vec = Vec::new();
         for _ in 0..SHARD_NUM {
             vec.push(DashMap::with_capacity(DEFAULT_SIZE));
         }
         Self {
             map_arr: vec,
+            zset_arr: set_vec,
             client: reqwest::Client::new(),
         }
     }
 
-    pub async fn insert(&self, k: String, v: ScoreValue) {
-        let cluster_idx = cluster_idx(&k);
-        if cluster_idx == **IDX {
-            self.do_insert(k, v);
-        } else {
-            match http_req::zadd(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
-                Ok(_) => {}
-                Err(_) => {
-                    error!("insert err")
-                }
-            }
-        }
-        //info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
-    }
-    fn do_insert(&self, k: String, v: ScoreValue) {
-        let map = &self.map_arr[shard_idx(&k)];
-        let mut e = map.entry(k).or_insert_with(|| SortValues::new());
-
-        if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
-            e.value_map.remove(v);
-        }
-        if let Some(v) = &e.value_map.insert(v.value, v.score) {
-            e.score_map.remove(v);
-        }
-    }
-
-
-    pub async fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
-        let mut ret = Vec::new();
-        let cluster_idx = cluster_idx(k);
-        if cluster_idx == **IDX {
-            let map = &self.map_arr[shard_idx(&k)];
-            if let Some(vs) = map.get(k) {
-                for v in vs.score_map.range(range.min_score..=range.max_score).into_iter() {
-                    ret.push(ScoreValue::new(*v.0, v.1.clone()))
-                }
-            }
-        } else {
-            match http_req::range(&self.client, &CLUSTER_URL[cluster_idx], k, range).await {
-                Ok(v) => { ret.clone_from(&v) }
-                Err(_) => {
-                    error!("range err")
-
-                }
-            }
-        }
-        ret
-    }
-
-    pub async fn remove(&self, k: &String, v: &String) {
-        let cluster_idx = cluster_idx(k);
-        if cluster_idx == **IDX {
-            let map = &self.map_arr[shard_idx(&k)];
-            if let Some(mut e) = map.get_mut(k) {
-                if let Some(v) = &e.value_map.remove(v) {
-                    e.score_map.remove(v);
-                }
-            }
-        } else {
-            match http_req::rmv(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
-                Ok(_) => {}
-                Err(_) => {
-                    error!("rmv err")
-
-                }
-            }
-        }
-    }
-}
-
-impl Kv {
-    pub fn new() -> Kv {
-        let mut vec = Vec::new();
-        for _ in 0..SHARD_NUM {
-            vec.push(DashMap::with_capacity(DEFAULT_KV_SIZE));
-        }
-        Self {
-            map_arr: vec,
-            client: reqwest::Client::new(),
-        }
-    }
-
-    pub fn load_from_file(&self) -> String{
+    pub fn load_from_file(&self) -> String {
         if LOADED.load(Ordering::Acquire) {
             return String::from("ok");
         }
@@ -164,7 +82,6 @@ impl Kv {
                 let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
                 //info!("{:?}",ins );
                 self.insert_local(ins);
-
             }
             info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
         }
@@ -172,7 +89,77 @@ impl Kv {
         LOADED.store(true, Ordering::Release);
         return String::from("ok");
     }
+}
 
+impl Store {
+    pub async fn zset_insert(&self, k: String, v: ScoreValue) {
+        let cluster_idx = cluster_idx(&k);
+        if cluster_idx == **IDX {
+            self.do_insert(k, v);
+        } else {
+            match http_req::zadd(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
+                Ok(_) => {}
+                Err(_) => {
+                    error!("insert err")
+                }
+            }
+        }
+        //info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
+    }
+    fn do_insert(&self, k: String, v: ScoreValue) {
+        let map = &self.zset_arr[shard_idx(&k)];
+        let mut e = map.entry(k).or_insert_with(|| SortValues::new());
+
+        if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
+            e.value_map.remove(v);
+        }
+        if let Some(v) = &e.value_map.insert(v.value, v.score) {
+            e.score_map.remove(v);
+        }
+    }
+
+
+    pub async fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
+        let mut ret = Vec::new();
+        let cluster_idx = cluster_idx(k);
+        if cluster_idx == **IDX {
+            let map = &self.zset_arr[shard_idx(&k)];
+            if let Some(vs) = map.get(k) {
+                for v in vs.score_map.range(range.min_score..=range.max_score).into_iter() {
+                    ret.push(ScoreValue::new(*v.0, v.1.clone()))
+                }
+            }
+        } else {
+            match http_req::range(&self.client, &CLUSTER_URL[cluster_idx], k, range).await {
+                Ok(v) => { ret.clone_from(&v) }
+                Err(_) => {
+                    error!("range err")
+
+                }
+            }
+        }
+        ret
+    }
+
+    pub async fn remove(&self, k: &String, v: &String) {
+        let cluster_idx = cluster_idx(k);
+        if cluster_idx == **IDX {
+            let map = &self.zset_arr[shard_idx(&k)];
+            if let Some(mut e) = map.get_mut(k) {
+                if let Some(v) = &e.value_map.remove(v) {
+                    e.score_map.remove(v);
+                }
+            }
+        } else {
+            match http_req::rmv(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
+                Ok(_) => {}
+                Err(_) => {
+                    error!("rmv err")
+
+                }
+            }
+        }
+    }
     #[inline]
     pub async fn insert(&self, req: InsrtRequest) {
         let cluster_idx = cluster_idx(&req.key);
@@ -312,6 +299,6 @@ impl Kv {
 
 #[test]
 fn test_load_level_db() {
-    let kv = Kv::new();
+    let kv = Store::new();
     kv.load_from_file();
 }
