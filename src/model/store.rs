@@ -43,7 +43,7 @@ impl Store {
         }
         let mut set_vec = Vec::new();
         for _ in 0..SHARD_NUM {
-            vec.push(DashMap::with_capacity(DEFAULT_SIZE));
+            set_vec.push(DashMap::with_capacity(DEFAULT_SIZE));
         }
         Self {
             map_arr: vec,
