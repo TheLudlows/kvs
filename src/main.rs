@@ -1,56 +1,58 @@
 mod model;
-use std::thread;
+
+use std::{thread};
+use std::net::SocketAddr;
 use std::sync::Arc;
-use bytes::Bytes;
 use log::info;
-use warp::{Filter};
+use warp::Filter;
 use log4rs::init_file;
 use signal_hook::{consts::SIGTERM, iterator::Signals};
-use warp::http::{Response};
-use warp::hyper::Body;
-use crate::model::request::*;
 
 pub use model::*;
+
+use crate::request::*;
+use crate::cluster::*;
+use crate::evn::read_port;
 use crate::store::*;
 
 
-//#[global_allocator]
-//static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+#[global_allocator]
+static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 
 #[tokio::main(worker_threads = 16)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let kv = Arc::new(Kv::new());
-    let zset = Arc::new(ZSet::new());
+    let kv = Arc::new(Store::new());
     init_file("./log4rs.yml", Default::default())?;
+    load_cluster_from_disk();
     kv.load_from_file();
+    // load cluster info
     let kv = warp::any().map(move || kv.clone());
-    let zset = warp::any().map(move || zset.clone());
+
+    let update = warp::path("updateCluster")
+        .and(warp::body::json())
+        .map(|c: Cluster| {
+            set_cluster(c);
+            return format!("ok");
+        });
 
 
-    let init_route = warp::get().and(warp::path("init")).map(|| {
-        return format!("ok");
-    });
+    let init_route = warp::get().and(warp::path("init"))
+        .and(kv.clone())
+        .map(|kv: Arc<Store>| {
+            return kv.load_from_file();
+        });
 
     let query = warp::get().and(warp::path("query"))
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .map(|k, kv: Arc<Kv>| {
-           /* let resp = match kv.get(&k) {
+        .and_then(|k, kv: Arc<Store>| async move {
+            match kv.get(&k).await {
                 None => {
                     Err(warp::reject::not_found())
                 }
                 Some(v) => {
                     Ok(v)
-                }
-            };
-            async move { resp }*/
-            let k = Bytes::from(k);
-            match kv.get(&k) {
-                None => {
-                    into_response(Bytes::from(""))
-                }
-                Some(v) => {
-                    into_response(v)
                 }
             }
         });
@@ -59,33 +61,33 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let add = warp::path("add")
         .and(warp::body::json())
         .and(kv.clone())
-        .map(|req: InsrtRequest, kv: Arc<Kv>| {
-            kv.insert(req.key, req.value);
+        .then(|req: InsrtRequest, kv: Arc<Store>| async move {
+            kv.insert(req).await;
             return warp::reply::reply();
         });
 
     let del = warp::path("del")
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .map(|k, kv: Arc<Kv>| {
+        .then(|k, kv: Arc<Store>| async move {
             //info!("del key{:?}", k);
-            kv.del(&Bytes::from(k));
+            kv.del(&k).await;
             return warp::reply::reply();
         });
 
     let list = warp::path("list")
         .and(warp::body::json())
         .and(kv.clone())
-        .map(|keys: Vec<Bytes>, kv: Arc<Kv>| {
-            warp::reply::json(&kv.list(keys))
+        .then(|keys: Vec<String>, kv: Arc<Store>| async move {
+            warp::reply::json(&kv.list(keys).await)
         });
 
     let batch = warp::path("batch")
         .and(warp::body::json())
         .and(kv.clone())
-        .map(|vs: Vec<InsrtRequest>, kv: Arc<Kv>| {
+        .then(|vs: Vec<InsrtRequest>, kv: Arc<Store>| async move {
             //info!("{:?}", vs);
-            kv.batch_insert(vs);
+            kv.batch_insert(vs).await;
             return warp::reply();
         });
 
@@ -93,27 +95,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zadd = warp::path("zadd")
         .and(warp::path::param::<String>())
         .and(warp::body::json())
-        .and(zset.clone())
-        .map(|k: String, v: ScoreValue, zset: Arc<ZSet>| {
+        .and(kv.clone())
+        .then(|k: String, v: ScoreValue, kv: Arc<Store>| async move {
             //info!("{:?}{:?}",k, v);
-            zset.insert(k, v);
+            kv.zset_insert(k, v).await;
             return warp::reply();
         });
 
     let zrange = warp::path("zrange")
         .and(warp::path::param::<String>())
         .and(warp::body::json())
-        .and(zset.clone())
-        .map(|k: String, range: ScoreRange, zset: Arc<ZSet>| {
-            let res = zset.range(&k, range);
-            //info!("zrange{:?} {:?} {:?}", k, range, res);
-           /* async move {
-                if res.len() == 0 {
-                    Err(warp::reject::not_found())
-                } else {
-                    Ok(warp::reply::json(&res))
-                }
-            }*/
+        .and(kv.clone())
+        .then(|k: String, range: ScoreRange,  kv: Arc<Store>| async move {
+            let res = kv.range(&k, range).await;
             warp::reply::json(&res)
         });
 
@@ -121,23 +115,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let zrmv = warp::path("zrmv")
         .and(warp::path::param::<String>())
         .and(warp::path::param::<String>())
-        .and(zset.clone())
-        .map(|k: String, v: String, zset: Arc<ZSet>| {
+        .and(kv.clone())
+        .then(|k: String, v: String,  kv: Arc<Store>| async move {
             //info!("{:?}{:?}",k, v);
-            zset.remove(&k, &v);
+            kv.remove(&k, &v).await;
             return warp::reply();
         });
 
-    let apis = init_route.or(query).or(add).or(del)
+    let apis = init_route.or(update).or(query).or(add).or(del)
         .or(list).or(batch).or(zadd).or(zrange)
         .or(zrmv);
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 
+
+    let port = read_port();
+    let address: SocketAddr = (String::from("0.0.0.0:") + &port).parse().unwrap();
+
+    info!("rust server started at {}", address);
     let (_, server) = warp::serve(apis)
         .unstable_pipeline()
-        .bind_with_graceful_shutdown(([0, 0, 0, 0], 8080), async move {
-            info!("rust server started");
+        .bind_with_graceful_shutdown(address, async move {
             rx.recv().await;
             info!("rust servert receive close signal");
         });
@@ -155,10 +153,4 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     });
     thread.await?;
     Ok(())
-}
-
-fn into_response(bytes : Bytes) -> Response<Body> {
-    Response::builder()
-        .body(Body::from(bytes))
-        .unwrap()
 }
