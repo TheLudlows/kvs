@@ -8,3 +8,6 @@ yum -y install cmake
 yum -y install zip
 
 git clone https://github.com/TheLudlows/kvs.git
+
+
+1828723137315221

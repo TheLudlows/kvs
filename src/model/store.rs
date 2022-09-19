@@ -1,16 +1,12 @@
 use std::collections::{BTreeMap, HashMap};
-use std::error::Error;
-use std::fs::create_dir;
 use std::path::{PathBuf};
 use std::sync::atomic::Ordering;
 
 use dashmap::DashMap;
-use fs_extra::dir::{copy, CopyOptions};
 use leveldb::database::Database;
 use leveldb::iterator::Iterable;
 use leveldb::options::{Options, ReadOptions};
 use log::{error, info};
-use warp::fs::file;
 use crate::model::{http_req};
 use crate::model::cluster::{CLUSTER_URL, IDX, LOADED};
 use crate::model::evn::*;
@@ -154,7 +150,7 @@ impl Kv {
 
         for pb in paths {
             info!("load data from {:?}", pb);
-            let mut op = Options::new();
+            let op = Options::new();
             //op.create_if_missing = true;
             let result: Result<Database<MyKey>, _> = Database::open(pb.as_path(), op);
             if !result.is_ok() {

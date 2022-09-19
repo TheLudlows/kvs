@@ -1,8 +1,7 @@
 use std::fs::{create_dir, OpenOptions};
 use std::io::{ Read, Write};
 use std::path::PathBuf;
-use std::sync::atomic;
-use std::sync::atomic::AtomicBool;
+`use std::sync::atomic::AtomicBool;
 use lazy_static::lazy_static;
 use log::info;
 use crate::model::evn::{BASE_PATH, CLUSTER_FILE, read_port};
