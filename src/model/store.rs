@@ -152,7 +152,7 @@ impl Kv {
             create_dir(&pb).unwrap();
             let op = CopyOptions::new();
             for s in data_files {
-                let r = copy(data_files[0], &pb, &op);
+                let r = copy(s, &pb, &op);
                 if !r.is_ok() {
                     info!("copy {} failed {:?}", s, r.unwrap_err());
                     return format!("copy failed");
