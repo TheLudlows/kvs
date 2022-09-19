@@ -27,7 +27,7 @@ pub fn shard_idx(s: &[u8]) -> usize {
         return 0;
     }
     //fasthash::xx::hash32(s) as usize % SHARD_NUM
-    s.as_bytes()[s.len() - 1] as usize % SHARD_NUM
+    s[s.len() - 1] as usize % SHARD_NUM
 }
 
 #[inline]

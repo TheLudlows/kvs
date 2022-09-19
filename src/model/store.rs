@@ -44,7 +44,7 @@ impl Store {
         }
         let mut set_vec = Vec::new();
         for _ in 0..SHARD_NUM {
-            vec.push(DashMap::with_capacity(DEFAULT_SIZE));
+            set_vec.push(DashMap::with_capacity(DEFAULT_SIZE));
         }
         Self {
             map_arr: vec,
@@ -202,7 +202,7 @@ impl Store {
     }
 
     #[inline]
-    pub async fn get(&self, k: &Bytes) -> Option<String> {
+    pub async fn get(&self, k: &Bytes) -> Option<Bytes> {
         let cluster_idx = cluster_idx(&k);
         return if cluster_idx == **IDX {
            self.local_get(k)
@@ -224,10 +224,10 @@ impl Store {
         };
     }
 
-    pub fn local_get(&self, k :&Bytes) -> Option<String> {
-        (&self.map_arr[shard_idx(&k)]).get(&k)
+    pub fn local_get(&self, k :&Bytes) -> Option<Bytes> {
+        (&self.map_arr[shard_idx(&k)]).get(k)
             //.map(|e| e.value().to_string())
-            .map(|e| e.to_string())
+            .map(|e| e.clone())
     }
     #[inline]
     pub async fn list(&self, keys: Vec<Bytes>) -> Vec<InsrtRequest> {
@@ -251,7 +251,7 @@ impl Store {
                     match self.local_get(k) {
                         None => {}
                         Some(v) => {
-                            ret.push(InsrtRequest::new(Bytes::from(k), Bytes::from(v)));
+                            ret.push(InsrtRequest::new(k.clone(), v.clone()));
                         }
                     }
                 }

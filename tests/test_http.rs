@@ -23,6 +23,7 @@ static ZRMV_COUNT: i32 = 10;
 extern crate lazy_static;
 
 use std::collections::HashMap;
+use bytes::Bytes;
 
 lazy_static! {
     static ref CLUSTER_URLS: Vec<String> =  {
@@ -137,7 +138,7 @@ pub async fn test_add() -> Result<(), reqwest::Error> {
     let mut n = 0;
     for host in CLUSTER_URLS.iter() {
         for i in n..n + ADD_COUNT / 3 {
-            let req = InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string());
+            let req = InsrtRequest::new(Bytes::from("key".to_string() + &i.to_string()), Bytes::from("val".to_string() + &i.to_string()));
             let res = http_req::add(&client, host, req).await;
             assert!(res.is_ok());
         };
@@ -167,7 +168,7 @@ pub async fn test_list() -> Result<(), reqwest::Error> {
             }
             let mut v = vec![];
             for i in n..n + 10 {
-                v.push(String::from("key") + i.to_string().as_str());
+                v.push(Bytes::from(String::from("key") + i.to_string().as_str()));
             }
             let rep = http_req::list(&client, host, &v).await?;
             assert_eq!(rep.len(), v.len());
@@ -181,7 +182,7 @@ pub async fn test_batch() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
         let mut v = Vec::new();
         for i in n..n + 10 {
-            v.push(InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string()));
+            v.push(InsrtRequest::new(Bytes::from("key".to_string() + &i.to_string()), Bytes::from("val".to_string() + &i.to_string())));
         }
         let rep = http_req::batch(&client, host, v).await;
         assert!(rep.is_ok());

@@ -3,7 +3,7 @@ use reqwest::{Client, StatusCode};
 use crate::model::request::{Cluster, InsrtRequest, ScoreRange, ScoreValue};
 
 
-pub async fn update_cluster(client: &Client, host: &String, cluster: Cluster) -> Result<String, reqwest::Error> {
+pub async fn update_cluster(client: &Client, host: &str, cluster: Cluster) -> Result<String, reqwest::Error> {
     let _rep = client.post(String::from(host) + "/updateCluster")
         .json(&cluster)
         .send()
@@ -13,7 +13,7 @@ pub async fn update_cluster(client: &Client, host: &String, cluster: Cluster) ->
     Ok(_rep)
 }
 
-pub async fn init(client: &Client, host: &String) -> Result<(), reqwest::Error> {
+pub async fn init(client: &Client, host: &str) -> Result<(), reqwest::Error> {
     let _rep = client.get(String::from(host) + "/init")
         .send()
         .await?;
@@ -21,7 +21,7 @@ pub async fn init(client: &Client, host: &String) -> Result<(), reqwest::Error> 
 }
 
 
-pub async fn add(client: &Client, host: &String, req: InsrtRequest) -> Result<(), reqwest::Error> {
+pub async fn add(client: &Client, host: &str, req: InsrtRequest) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/add")
         .json(&req)
         .send()
@@ -33,7 +33,7 @@ pub async fn add(client: &Client, host: &String, req: InsrtRequest) -> Result<()
     }
 }
 
-pub async fn query(client: &Client, host: &String, key: &String) -> Result<Option<String>, reqwest::Error> {
+pub async fn query(client: &Client, host: &str, key: &str) -> Result<Option<Bytes>, reqwest::Error> {
 
     let resp = client.get(String::from(host) + "/query/" + key)
         .send()
@@ -41,10 +41,10 @@ pub async fn query(client: &Client, host: &String, key: &String) -> Result<Optio
     if resp.status() == StatusCode::NOT_FOUND{
         return Ok(None);
     }
-    Ok(Some(resp.text().await?))
+    Ok(Some(Bytes::from(resp.text().await?)))
 }
 
-pub async fn list(client: &Client, host: &String, keys: &Vec<Bytes>) -> Result<Vec<InsrtRequest>, reqwest::Error> {
+pub async fn list(client: &Client, host: &str, keys: &Vec<Bytes>) -> Result<Vec<InsrtRequest>, reqwest::Error> {
     let rep: Vec<InsrtRequest> = client.post(String::from(host) + "/list")
         .json(&keys)
         .send()
@@ -54,7 +54,7 @@ pub async fn list(client: &Client, host: &String, keys: &Vec<Bytes>) -> Result<V
     Ok(rep)
 }
 
-pub async fn batch(client: &Client, host: &String, req: Vec<Bytes>) -> Result<(), reqwest::Error> {
+pub async fn batch(client: &Client, host: &str, req: Vec<InsrtRequest>) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/batch")
         .json(&req)
         .send()
@@ -63,7 +63,7 @@ pub async fn batch(client: &Client, host: &String, req: Vec<Bytes>) -> Result<()
 }
 
 
-pub async fn del(client: &Client, host: &String, key: &String) -> Result<(), reqwest::Error> {
+pub async fn del(client: &Client, host: &str, key: &str) -> Result<(), reqwest::Error> {
     let _rep = client.get(String::from(host) + "/del/" + key)
         .send()
         .await?;

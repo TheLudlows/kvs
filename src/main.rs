@@ -3,16 +3,19 @@ mod model;
 use std::{thread};
 use std::net::SocketAddr;
 use std::sync::Arc;
+use bytes::Bytes;
 use log::info;
 use warp::Filter;
 use log4rs::init_file;
 use signal_hook::{consts::SIGTERM, iterator::Signals};
+use warp::http::response;
 
 pub use model::*;
 
 use crate::request::*;
 use crate::cluster::*;
 use crate::evn::read_port;
+use crate::response::Response;
 use crate::store::*;
 
 
@@ -46,13 +49,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let query = warp::get().and(warp::path("query"))
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .and_then(|k, kv: Arc<Store>| async move {
-            match kv.get(&k).await {
+        .and_then(|k:String, kv: Arc<Store>| async move {
+            match kv.get(&Bytes::from(k)).await {
                 None => {
                     Err(warp::reject::not_found())
                 }
                 Some(v) => {
-                    Ok(v)
+                    Ok(Response::new(v))
                 }
             }
         });
@@ -78,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let list = warp::path("list")
         .and(warp::body::json())
         .and(kv.clone())
-        .then(|keys: Vec<String>, kv: Arc<Store>| async move {
+        .then(|keys: Vec<Bytes>, kv: Arc<Store>| async move {
             warp::reply::json(&kv.list(keys).await)
         });
 
