@@ -11,11 +11,11 @@ fn test_cp_dir() {
     let mut options = CopyOptions::new();
     options.skip_exist = true;
 
-    copy("/tmp/data1", "/tmp/data/", &options);
+    copy("/Users/liuchao/code", "/Users/liuchao/data/", &options);
 
 
 
-    let mut config = HashSet::new();
+  /*  let mut config = HashSet::new();
     config.insert(DirEntryAttr::IsDir);
 
 
@@ -27,5 +27,5 @@ fn test_cp_dir() {
     println!("{:?}", pb);
     if !pb.exists() {
         dir::create(pb, true).unwrap();
-    }
+    }*/
 }
