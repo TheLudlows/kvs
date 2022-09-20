@@ -3,8 +3,8 @@ use serde::{self,Serialize, Deserialize};
 
 #[derive(Debug,Clone,Serialize, Deserialize,Eq,PartialEq)]
 pub struct InsrtRequest{
-    pub key: String,
-    pub value: String
+    pub key: SmolStr,
+    pub value: SmolStr
 }
 
 #[derive(Debug,Clone,Serialize, Deserialize,Eq,PartialEq)]
@@ -14,7 +14,7 @@ pub struct Cluster{
 }
 
 impl InsrtRequest {
-    pub fn new(key: String, value: String) -> Self {
+    pub fn new(key: SmolStr, value: SmolStr) -> Self {
         InsrtRequest {
             key,
             value
@@ -26,10 +26,10 @@ impl InsrtRequest {
 #[derive(Debug,Clone,Serialize, Deserialize,Eq,PartialEq)]
 pub struct ScoreValue{
     pub score: u32,
-    pub value: String
+    pub value: SmolStr
 }
 impl ScoreValue {
-    pub fn new(score: u32, value: String) -> Self {
+    pub fn new(score: u32, value: SmolStr) -> Self {
         ScoreValue {
             score,
             value
@@ -53,6 +53,7 @@ impl ScoreRange {
 }
 
 use db_key::Key;
+use smol_str::SmolStr;
 
 
 #[derive(Debug,Clone,Eq,PartialEq, Hash)]

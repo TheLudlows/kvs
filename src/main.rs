@@ -7,6 +7,9 @@ use log::info;
 use warp::Filter;
 use log4rs::init_file;
 use signal_hook::{consts::SIGTERM, iterator::Signals};
+use smol_str::SmolStr;
+use warp::hyper::Body;
+use warp::reply::Response;
 
 pub use model::*;
 
@@ -44,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
 
     let query = warp::get().and(warp::path("query"))
-        .and(warp::path::param::<String>())
+        .and(warp::path::param::<SmolStr>())
         .and(kv.clone())
         .and_then(|k, kv: Arc<Store>| async move {
             match kv.get(&k).await {
@@ -52,7 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     Err(warp::reject::not_found())
                 }
                 Some(v) => {
-                    Ok(v)
+                    Ok(Response::new(Body::from(v.as_str())))
                 }
             }
         });
@@ -67,7 +70,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
 
     let del = warp::path("del")
-        .and(warp::path::param::<String>())
+        .and(warp::path::param::<SmolStr>())
         .and(kv.clone())
         .then(|k, kv: Arc<Store>| async move {
             //info!("del key{:?}", k);
@@ -78,7 +81,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let list = warp::path("list")
         .and(warp::body::json())
         .and(kv.clone())
-        .then(|keys: Vec<String>, kv: Arc<Store>| async move {
+        .then(|keys: Vec<SmolStr>, kv: Arc<Store>| async move {
             warp::reply::json(&kv.list(keys).await)
         });
 
@@ -93,30 +96,30 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 
     let zadd = warp::path("zadd")
-        .and(warp::path::param::<String>())
+        .and(warp::path::param::<SmolStr>())
         .and(warp::body::json())
         .and(kv.clone())
-        .then(|k: String, v: ScoreValue, kv: Arc<Store>| async move {
+        .then(|k: SmolStr, v: ScoreValue, kv: Arc<Store>| async move {
             //info!("{:?}{:?}",k, v);
             kv.zset_insert(k, v).await;
             return warp::reply();
         });
 
     let zrange = warp::path("zrange")
-        .and(warp::path::param::<String>())
+        .and(warp::path::param::<SmolStr>())
         .and(warp::body::json())
         .and(kv.clone())
-        .then(|k: String, range: ScoreRange,  kv: Arc<Store>| async move {
+        .then(|k: SmolStr, range: ScoreRange,  kv: Arc<Store>| async move {
             let res = kv.range(&k, range).await;
             warp::reply::json(&res)
         });
 
 
     let zrmv = warp::path("zrmv")
-        .and(warp::path::param::<String>())
-        .and(warp::path::param::<String>())
+        .and(warp::path::param::<SmolStr>())
+        .and(warp::path::param::<SmolStr>())
         .and(kv.clone())
-        .then(|k: String, v: String,  kv: Arc<Store>| async move {
+        .then(|k: SmolStr, v: SmolStr,  kv: Arc<Store>| async move {
             //info!("{:?}{:?}",k, v);
             kv.remove(&k, &v).await;
             return warp::reply();
