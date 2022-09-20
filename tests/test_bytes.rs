@@ -7,6 +7,4 @@ fn test_bytes() {
     let ss = from_utf8(&bytes).unwrap();
     println!("{}", ss);
 
-
-    bstr::BStr::new()
 }
