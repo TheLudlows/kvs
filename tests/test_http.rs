@@ -21,7 +21,7 @@ static ZRMV_COUNT: i32 = 10;
 pub static CLUSTER_URLS: [&'static str; 3] = ["http://localhost:8080", "http://localhost:8081", "http://localhost:8082"];
 
 #[cfg(target_os = "macos")]
-pub static CLUSTERS: [&'static str; 3] = ["http://localhost:8080", "http://localhost:8081", "http://localhost:8082"];
+pub static CLUSTERS: [&'static str; 3] = ["localhost:8080", "localhost:8081", "localhost:8082"];
 
 #[cfg(target_os = "linux")]
 pub static CLUSTER_URLS: [&'static str; 3] = ["http://172.16.0.158:8080", "http://172.16.0.164:8080", "http://172.16.0.187:8080"];
