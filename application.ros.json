@@ -105,7 +105,7 @@
                 "en": "Image ID",
                 "zh-cn": "镜像ID"
             },
-            "Default": "m-2ze0806xq36hhi9slimc"
+            "Default": "m-2ze947ziocz276bsujqj"
         },
         "ecs_system_disk_category": {
             "Type": "String",
@@ -241,7 +241,7 @@
                                     "sudo mkdir /data2\n",
                                     "sudo mount -t nfs -o vers=3,nolock,proto=tcp,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport \"${nas_url}\"  /data2 \n",
                                     "sleep 15 \n",
-                                    "cp -r /data2/* /data/ \n",
+                                    "cp -rn /data2/* /data/ \n",
                                     "################# shell 示例 - 启动服务 ################# \n",
                                     "cd ~ && bash start.sh \n",
                                     "ros-notify \n"

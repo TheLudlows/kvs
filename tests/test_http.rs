@@ -17,6 +17,17 @@ static ZADD_SUB_COUNT: i32 = 10;
 static ZRMV_COUNT: i32 = 10;
 
 
+#[cfg(target_os = "macos")]
+pub static CLUSTER_URLS: [&'static str; 3] = ["http://localhost:8080", "http://localhost:8081", "http://localhost:8082"];
+
+#[cfg(target_os = "macos")]
+pub static CLUSTERS: [&'static str; 3] = ["http://localhost:8080", "http://localhost:8081", "http://localhost:8082"];
+
+#[cfg(target_os = "linux")]
+pub static CLUSTER_URLS: [&'static str; 3] = ["http://172.16.0.158:8080", "http://172.16.0.164:8080", "http://172.16.0.187:8080"];
+
+#[cfg(target_os = "linux")]
+pub static CLUSTERS: [&'static str; 3] = ["172.16.0.158", "172.16.0.164", "172.16.0.187"];
 
 
 #[macro_use]
@@ -24,35 +35,9 @@ extern crate lazy_static;
 
 use std::collections::HashMap;
 
-lazy_static! {
-    static ref CLUSTER_URLS: Vec<String> =  {
-      /**let v = vec![
-            String::from("http://172.16.0.158:8080"),
-            String::from("http://172.16.0.164:8080"),
-            String::from("http://172.16.0.187:8080"),
-        ];*/
-            let v = vec![
-            String::from("http://localhost:8080"),
-            String::from("http://localhost:8081"),
-            String::from("http://localhost:8082"),
-        ];
-        v
-    };
 
-    static ref CLUSTERS: Vec<String> =  {
-        /** let v = vec![
-            String::from("172.16.0.158"),
-            String::from("172.16.0.164"),
-            String::from("172.16.0.187"),
-        ];*/
-       let v = vec![
-            String::from("localhost:8080"),
-            String::from("localhost:8081"),
-            String::from("localhost:8082"),
-        ];
-        v
-    };
-    static ref client:Client = Client::new();
+lazy_static! {
+        static ref client:Client = Client::new();
 }
 
 #[tokio::test]
@@ -78,14 +63,12 @@ pub async fn test_main() -> Result<(), reqwest::Error> {
 172.16.0.164
  172.16.0.187
  */
-
-
 #[tokio::test]
-pub async  fn test_single() {
+pub async fn test_single() {
     let cluster_url = vec![String::from("localhost"), String::from("localhost"), String::from("localhost")];
-    let cluster = Cluster{
+    let cluster = Cluster {
         hosts: cluster_url,
-        index: 1
+        index: 1,
     };
     let res = http_req::update_cluster(&client, &String::from("http://60.205.189.30:8080"), cluster).await;
     println!("{:?}", res);
@@ -114,12 +97,14 @@ async fn test_restart() -> Result<(), reqwest::Error> {
 }
 
 pub async fn test_update_cluster() -> Result<(), reqwest::Error> {
+    let cls: Vec<String> = CLUSTERS.iter().map(|e| e.to_string()).collect();
+
     for i in 1..=3 {
         let cluster = Cluster {
-            hosts: CLUSTERS.clone(),
+            hosts: cls.clone(),
             index: i,
         };
-        let res = http_req::update_cluster(&client, &CLUSTER_URLS[i - 1], cluster).await?;
+        let res = http_req::update_cluster(&client, CLUSTER_URLS[i - 1], cluster).await?;
         assert_eq!(res, "ok");
     }
     Ok(())

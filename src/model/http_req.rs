@@ -2,7 +2,7 @@ use reqwest::{Client, StatusCode};
 use crate::model::request::{Cluster, InsrtRequest, ScoreRange, ScoreValue};
 
 
-pub async fn update_cluster(client: &Client, host: &String, cluster: Cluster) -> Result<String, reqwest::Error> {
+pub async fn update_cluster(client: &Client, host: &str, cluster: Cluster) -> Result<String, reqwest::Error> {
     let _rep = client.post(String::from(host) + "/updateCluster")
         .json(&cluster)
         .send()
@@ -12,7 +12,7 @@ pub async fn update_cluster(client: &Client, host: &String, cluster: Cluster) ->
     Ok(_rep)
 }
 
-pub async fn init(client: &Client, host: &String) -> Result<(), reqwest::Error> {
+pub async fn init(client: &Client, host: &str) -> Result<(), reqwest::Error> {
     let _rep = client.get(String::from(host) + "/init")
         .send()
         .await?;
@@ -20,7 +20,7 @@ pub async fn init(client: &Client, host: &String) -> Result<(), reqwest::Error> 
 }
 
 
-pub async fn add(client: &Client, host: &String, req: InsrtRequest) -> Result<(), reqwest::Error> {
+pub async fn add(client: &Client, host: &str, req: InsrtRequest) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/add")
         .json(&req)
         .send()
@@ -32,7 +32,7 @@ pub async fn add(client: &Client, host: &String, req: InsrtRequest) -> Result<()
     }
 }
 
-pub async fn query(client: &Client, host: &String, key: &String) -> Result<Option<String>, reqwest::Error> {
+pub async fn query(client: &Client, host: &str, key: &String) -> Result<Option<String>, reqwest::Error> {
 
     let resp = client.get(String::from(host) + "/query/" + key)
         .send()
@@ -43,7 +43,7 @@ pub async fn query(client: &Client, host: &String, key: &String) -> Result<Optio
     Ok(Some(resp.text().await?))
 }
 
-pub async fn list(client: &Client, host: &String, keys: &Vec<String>) -> Result<Vec<InsrtRequest>, reqwest::Error> {
+pub async fn list(client: &Client, host: &str, keys: &Vec<String>) -> Result<Vec<InsrtRequest>, reqwest::Error> {
     let rep: Vec<InsrtRequest> = client.post(String::from(host) + "/list")
         .json(&keys)
         .send()
@@ -53,7 +53,7 @@ pub async fn list(client: &Client, host: &String, keys: &Vec<String>) -> Result<
     Ok(rep)
 }
 
-pub async fn batch(client: &Client, host: &String, req: &Vec<InsrtRequest>) -> Result<(), reqwest::Error> {
+pub async fn batch(client: &Client, host: &str, req: &Vec<InsrtRequest>) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/batch")
         .json(req)
         .send()
@@ -66,7 +66,7 @@ pub async fn batch(client: &Client, host: &String, req: &Vec<InsrtRequest>) -> R
 }
 
 
-pub async fn del(client: &Client, host: &String, key: &String) -> Result<(), reqwest::Error> {
+pub async fn del(client: &Client, host: &str, key: &String) -> Result<(), reqwest::Error> {
     let _rep = client.get(String::from(host) + "/del/" + key)
         .send()
         .await?;
@@ -77,7 +77,7 @@ pub async fn del(client: &Client, host: &String, key: &String) -> Result<(), req
     Ok(())
 }
 
-pub async fn zadd(client: &Client, host: &String, key: String, sv: ScoreValue) -> Result<(), reqwest::Error> {
+pub async fn zadd(client: &Client, host: &str, key: String, sv: ScoreValue) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/zadd/" + &key)
         .json(&sv)
         .send()
@@ -89,7 +89,7 @@ pub async fn zadd(client: &Client, host: &String, key: String, sv: ScoreValue) -
     Ok(())
 }
 
-pub async fn range(client: &Client, host: &String, key: &String, range: ScoreRange) -> Result<Vec<ScoreValue>, reqwest::Error> {
+pub async fn range(client: &Client, host: &str, key: &String, range: ScoreRange) -> Result<Vec<ScoreValue>, reqwest::Error> {
     let rep: Vec<ScoreValue> = client.post(String::from(host) + "/zrange/" + key)
         .json(&range)
         .send()
@@ -99,7 +99,7 @@ pub async fn range(client: &Client, host: &String, key: &String, range: ScoreRan
     Ok(rep)
 }
 
-pub async fn rmv(client: &Client, host: &String, key: &String, val: &String) -> Result<(), reqwest::Error> {
+pub async fn rmv(client: &Client, host: &str, key: &String, val: &String) -> Result<(), reqwest::Error> {
     let _rep = client.get(String::from(host) + "/zrmv/" + key + "/" + val)
         .send()
         .await?;
