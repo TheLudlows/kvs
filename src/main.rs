@@ -16,11 +16,12 @@ use crate::evn::read_port;
 use crate::store::*;
 
 
-#[global_allocator]
-static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+//#[global_allocator]
+//static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 
-#[tokio::main(worker_threads = 20)]
+//#[tokio::main(worker_threads = 20)]
+#[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Store::new());
     init_file("./log4rs.yml", Default::default())?;
