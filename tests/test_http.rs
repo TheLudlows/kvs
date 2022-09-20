@@ -183,7 +183,7 @@ pub async fn test_batch() -> Result<(), reqwest::Error> {
         for i in n..n + 10 {
             v.push(InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string()));
         }
-        let rep = http_req::batch(&client, host, v).await;
+        let rep = http_req::batch(&client, host, &v).await;
         assert!(rep.is_ok());
         n += 10;
     }

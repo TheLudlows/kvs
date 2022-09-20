@@ -20,7 +20,7 @@ use crate::store::*;
 static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 
-#[tokio::main(worker_threads = 16)]
+#[tokio::main(worker_threads = 20)]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let kv = Arc::new(Store::new());
     init_file("./log4rs.yml", Default::default())?;

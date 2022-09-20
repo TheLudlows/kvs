@@ -53,11 +53,15 @@ pub async fn list(client: &Client, host: &String, keys: &Vec<String>) -> Result<
     Ok(rep)
 }
 
-pub async fn batch(client: &Client, host: &String, req: Vec<InsrtRequest>) -> Result<(), reqwest::Error> {
+pub async fn batch(client: &Client, host: &String, req: &Vec<InsrtRequest>) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/batch")
-        .json(&req)
+        .json(req)
         .send()
         .await?;
+    if !_rep.status().is_success() {
+        println!("{:?}", _rep);
+        panic!("batch post err")
+    }
     Ok(())
 }
 
@@ -66,6 +70,10 @@ pub async fn del(client: &Client, host: &String, key: &String) -> Result<(), req
     let _rep = client.get(String::from(host) + "/del/" + key)
         .send()
         .await?;
+
+    if !_rep.status().is_success() {
+        panic!("del get err")
+    }
     Ok(())
 }
 
@@ -74,6 +82,10 @@ pub async fn zadd(client: &Client, host: &String, key: String, sv: ScoreValue) -
         .json(&sv)
         .send()
         .await?;
+
+    if !_rep.status().is_success() {
+        panic!("zadd get err")
+    }
     Ok(())
 }
 
@@ -91,5 +103,9 @@ pub async fn rmv(client: &Client, host: &String, key: &String, val: &String) -> 
     let _rep = client.get(String::from(host) + "/zrmv/" + key + "/" + val)
         .send()
         .await?;
+
+    if !_rep.status().is_success() {
+        panic!("rmv get err")
+    }
     Ok(())
 }

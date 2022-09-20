@@ -288,7 +288,7 @@ impl Store {
                     self.insert_local(req);
                 }
             } else {
-                match http_req::batch(&self.client, &CLUSTER_URL[i], vec_group[i].clone()).await {
+                match http_req::batch(&self.client, &CLUSTER_URL[i], &vec_group[i]).await {
                     Ok(_) => {}
                     Err(_) => {}
                 }
