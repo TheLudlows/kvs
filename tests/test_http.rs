@@ -114,7 +114,8 @@ pub async fn test_update_cluster() -> Result<(), reqwest::Error> {
 
 pub async fn test_init() -> Result<(), reqwest::Error> {
     for s in CLUSTER_URLS.iter() {
-        http_req::init(&client, s).await?;
+        let r = http_req::init(&client, s).await?;
+        assert_eq!(r, "ok");
     }
     Ok(())
 }

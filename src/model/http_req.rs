@@ -13,11 +13,13 @@ pub async fn update_cluster(client: &Client, host: &str, cluster: Cluster) -> Re
     Ok(_rep)
 }
 
-pub async fn init(client: &Client, host: &str) -> Result<(), reqwest::Error> {
+pub async fn init(client: &Client, host: &str) -> Result<String, reqwest::Error> {
     let _rep = client.get(String::from(host) + "/init")
         .send()
+        .await?
+        .text()
         .await?;
-    Ok(())
+    Ok(_rep)
 }
 
 
