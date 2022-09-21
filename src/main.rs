@@ -4,9 +4,12 @@ use std::{thread};
 use std::net::SocketAddr;
 use std::sync::Arc;
 use log::info;
-use warp::Filter;
+use warp::{Filter, Reply};
 use log4rs::init_file;
 use signal_hook::{consts::SIGTERM, iterator::Signals};
+use warp::http::StatusCode;
+use warp::reject::InvalidQuery;
+use warp::reply::Response;
 
 pub use model::*;
 
@@ -38,13 +41,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
 
 
-    let init_route = warp::get().and(warp::path("init"))
+    let init_route = warp::path("init")
         .and(kv.clone())
         .map(|kv: Arc<Store>| {
             return kv.load_from_file();
         });
 
-    let query = warp::get().and(warp::path("query"))
+    let query = warp::path("query")
         .and(warp::path::param::<String>())
         .and(kv.clone())
         .and_then(|k, kv: Arc<Store>| async move {
@@ -63,8 +66,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::body::json())
         .and(kv.clone())
         .then(|req: InsrtRequest, kv: Arc<Store>| async move {
-            kv.insert(req).await;
-            return warp::reply::reply();
+            if kv.insert(req).await {
+                warp::reply::reply().into_response()
+            } else {
+                warp::reply::with_status(warp::reply::reply(), warp::http::StatusCode::BAD_REQUEST).into_response()
+            }
         });
 
     let del = warp::path("del")
@@ -79,8 +85,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let list = warp::path("list")
         .and(warp::body::json())
         .and(kv.clone())
-        .then(|keys: Vec<String>, kv: Arc<Store>| async move {
-            warp::reply::json(&kv.list(keys).await)
+        .and_then(|keys: Vec<String>, kv: Arc<Store>| async move {
+            let res = &kv.list(keys).await;
+            if res.is_empty() {
+                Err(warp::reject::not_found())
+            } else {
+                Ok(warp::reply::json(res))
+            }
         });
 
     let batch = warp::path("batch")
@@ -107,9 +118,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::body::json())
         .and(kv.clone())
-        .then(|k: String, range: ScoreRange,  kv: Arc<Store>| async move {
-            let res = kv.range(&k, range).await;
-            warp::reply::json(&res)
+        .and_then(|k: String, range: ScoreRange, kv: Arc<Store>| async move {
+            let res = &kv.range(&k, range).await;
+            if res.is_empty() {
+                Err(warp::reject::not_found())
+            } else {
+                Ok(warp::reply::json(res))
+            }
         });
 
 
@@ -117,15 +132,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(warp::path::param::<String>())
         .and(kv.clone())
-        .then(|k: String, v: String,  kv: Arc<Store>| async move {
+        .then(|k: String, v: String, kv: Arc<Store>| async move {
             //info!("{:?}{:?}",k, v);
             kv.remove(&k, &v).await;
             return warp::reply();
         });
 
-    let apis = init_route.or(update).or(query).or(add).or(del)
+    let apis = init_route.or(query).or(add).or(del)
         .or(list).or(batch).or(zadd).or(zrange)
-        .or(zrmv);
+        .or(zrmv).or(update);
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
 

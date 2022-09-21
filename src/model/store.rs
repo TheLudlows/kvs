@@ -78,10 +78,12 @@ impl Store {
             let database = result.unwrap();
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
-                // 批量？
-                let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
-                //info!("{:?}",ins );
-                self.insert_local(ins);
+                if cluster_idx(&k.0) == **IDX {
+                    // 批量？
+                    let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
+                    //info!("{:?}",ins );
+                    self.insert_local(ins);
+                }
             }
             info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
         }
@@ -134,7 +136,6 @@ impl Store {
                 Ok(v) => { ret.clone_from(&v) }
                 Err(_) => {
                     error!("range err")
-
                 }
             }
         }
@@ -155,33 +156,37 @@ impl Store {
                 Ok(_) => {}
                 Err(_) => {
                     error!("rmv err")
-
                 }
             }
         }
     }
     #[inline]
-    pub async fn insert(&self, req: InsrtRequest) {
+    pub async fn insert(&self, req: InsrtRequest) -> bool {
         let cluster_idx = cluster_idx(&req.key);
         if cluster_idx == **IDX {
-            self.map_arr[shard_idx(&req.key)].insert(req.key, req.value);
+           return self.insert_local(req);
         } else {
             //info!("insert to {}, cur{}", cluster_idx, **IDX);
             match http_req::add(&self.client, &CLUSTER_URL[cluster_idx], req).await {
-                Ok(_) => {}
+                Ok(b) => {
+                    b
+                }
                 Err(_) => {
-                    error!("insert kv err")
+                    //error!("insert kv err");
+                    false
                 }
             }
         }
     }
 
     #[inline]
-    pub fn insert_local(&self, req: InsrtRequest) {
-        let cluster_idx = cluster_idx(&req.key);
-        if cluster_idx == **IDX {
-            self.map_arr[shard_idx(&req.key)].insert(req.key, req.value);
+    pub fn insert_local(&self, req: InsrtRequest) -> bool {
+        let map = &self.map_arr[shard_idx(&req.key)];
+        if map.contains_key(&req.key) {
+            return false;
         }
+        map.insert(req.key, req.value);
+        true
     }
 
     #[inline]
@@ -194,7 +199,6 @@ impl Store {
                 Ok(_) => {}
                 Err(_) => {
                     error!("del err")
-
                 }
             }
         }
@@ -204,7 +208,7 @@ impl Store {
     pub async fn get(&self, k: &String) -> Option<String> {
         let cluster_idx = cluster_idx(k);
         return if cluster_idx == **IDX {
-           self.local_get(k)
+            self.local_get(k)
         } else {
             //info!("get to {}, cur{}", cluster_idx, **IDX);
             match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], k).await {
@@ -223,7 +227,7 @@ impl Store {
         };
     }
 
-    pub fn local_get(&self, k :&String) -> Option<String> {
+    pub fn local_get(&self, k: &String) -> Option<String> {
         (&self.map_arr[shard_idx(&k)]).get(k)
             //.map(|e| e.value().to_string())
             .map(|e| e.to_string())
