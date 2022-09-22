@@ -13,7 +13,7 @@ pub static data_files: [&'static str; 3] = ["/data/data1", "/data/data2", "/data
 
 pub static CLUSTER_FILE: &str = "cluster";
 
-pub const SHARD_NUM: usize = 16;
+pub const SHARD_NUM: usize = 8;
 
 pub const DEFAULT_SIZE: usize = 1024 * 8;
 
@@ -27,7 +27,7 @@ pub fn shard_idx(s: &String) -> usize {
         return 0;
     }
     //fasthash::xx::hash32(s) as usize % SHARD_NUM
-    s.as_bytes()[s.len() - 1] as usize % SHARD_NUM
+    fasthash::xx::hash32(s) as usize % SHARD_NUM
 }
 
 #[inline]
