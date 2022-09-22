@@ -13,7 +13,7 @@ pub static data_files: [&'static str; 3] = ["/data/data1", "/data/data2", "/data
 
 pub static CLUSTER_FILE: &str = "cluster";
 
-pub const SHARD_NUM: usize = 8;
+pub const SHARD_NUM: usize = 16;
 
 pub const DEFAULT_SIZE: usize = 1024 * 8;
 

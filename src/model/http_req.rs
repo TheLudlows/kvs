@@ -1,4 +1,4 @@
-use log::info;
+use log::{error, info};
 use reqwest::{Client, StatusCode};
 use crate::model::request::{Cluster, InsrtRequest, ScoreRange, ScoreValue};
 
@@ -23,19 +23,15 @@ pub async fn init(client: &Client, host: &str) -> Result<String, reqwest::Error>
 }
 
 
-pub async fn add(client: &Client, host: &str, req: InsrtRequest) -> Result<bool, reqwest::Error> {
+pub async fn add(client: &Client, host: &str, req: InsrtRequest) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/add")
         .json(&req)
         .send()
         .await?;
-    if _rep.status() == StatusCode::OK{
-        return Ok(true);
-    } else if _rep.status() == StatusCode::BAD_REQUEST{
-        return Ok(false)
-    } else {
-        panic!("sys err")
+    if _rep.status() != StatusCode::OK{
+        error!("sys err")
     }
-
+    return Ok(());
 }
 
 pub async fn query(client: &Client, host: &str, key: &String) -> Result<Option<String>, reqwest::Error> {

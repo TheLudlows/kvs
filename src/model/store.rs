@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::path::{PathBuf};
 use std::sync::atomic::Ordering;
 
@@ -21,7 +21,7 @@ pub struct Store {
 
 #[derive(Debug, Clone)]
 struct SortValues {
-    score_map: BTreeMap<u32, String>,
+    score_map: BTreeMap<u32, HashSet<String>>,
     value_map: HashMap<String, u32>,
 }
 
@@ -108,38 +108,48 @@ impl Store {
         }
         //info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
     }
-    fn do_insert(&self, k: String, v: ScoreValue) {
+    pub fn do_insert(&self, k: String, v: ScoreValue) {
         let map = &self.zset_arr[shard_idx(&k)];
         let mut e = map.entry(k).or_insert_with(|| SortValues::new());
 
-        if let Some(v) = &e.score_map.insert(v.score, v.value.clone()) {
-            e.value_map.remove(v);
+        if let Some(old_score)  = &e.value_map.insert(v.value.clone(), v.score) {
+            if let Some(v_set) = e.score_map.get_mut(old_score) {
+                v_set.remove(&v.value);
+            }
         }
-        if let Some(v) = &e.value_map.insert(v.value, v.score) {
-            e.score_map.remove(v);
-        }
+
+        let v_set = e.score_map.entry(v.score).or_insert(HashSet::new());
+
+        v_set.insert(v.value);
+
     }
 
-
-    pub async fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
+    pub fn range_Local(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
         let mut ret = Vec::new();
-        let cluster_idx = cluster_idx(k);
-        if cluster_idx == **IDX {
-            let map = &self.zset_arr[shard_idx(&k)];
-            if let Some(vs) = map.get(k) {
-                for v in vs.score_map.range(range.min_score..=range.max_score).into_iter() {
-                    ret.push(ScoreValue::new(*v.0, v.1.clone()))
-                }
-            }
-        } else {
-            match http_req::range(&self.client, &CLUSTER_URL[cluster_idx], k, range).await {
-                Ok(v) => { ret.clone_from(&v) }
-                Err(_) => {
-                    error!("range err")
+        let map = &self.zset_arr[shard_idx(k)];
+        if let Some(vs) = map.get(k) {
+            for v in vs.score_map.range(range.min_score..=range.max_score).into_iter() {
+                for val in v.1.iter() {
+                    ret.push(ScoreValue::new(*v.0, val.clone()));
                 }
             }
         }
         ret
+    }
+
+    pub async fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
+        let cluster_idx = cluster_idx(k);
+        return if cluster_idx == **IDX {
+            self.range_Local(k, range)
+        } else {
+            match http_req::range(&self.client, &CLUSTER_URL[cluster_idx], k, range).await {
+                Ok(v) => { v }
+                Err(_) => {
+                    error!("range err");
+                    Vec::new()
+                }
+            }
+        }
     }
 
     pub async fn remove(&self, k: &String, v: &String) {
@@ -147,8 +157,10 @@ impl Store {
         if cluster_idx == **IDX {
             let map = &self.zset_arr[shard_idx(&k)];
             if let Some(mut e) = map.get_mut(k) {
-                if let Some(v) = &e.value_map.remove(v) {
-                    e.score_map.remove(v);
+                if let Some(old_score) = &e.value_map.remove(v) {
+                    if let Some(v_set) = e.score_map.get_mut(old_score) {
+                        v_set.remove(v);
+                    }
                 }
             }
         } else {
@@ -161,32 +173,27 @@ impl Store {
         }
     }
     #[inline]
-    pub async fn insert(&self, req: InsrtRequest) -> bool {
+    pub async fn insert(&self, req: InsrtRequest){
         let cluster_idx = cluster_idx(&req.key);
         if cluster_idx == **IDX {
-           return self.insert_local(req);
+            self.insert_local(req);
         } else {
             //info!("insert to {}, cur{}", cluster_idx, **IDX);
             match http_req::add(&self.client, &CLUSTER_URL[cluster_idx], req).await {
-                Ok(b) => {
-                    b
+                Ok(_) => {
+
                 }
                 Err(_) => {
-                    //error!("insert kv err");
-                    false
+                    error!("insert kv err");
                 }
             }
         }
     }
 
     #[inline]
-    pub fn insert_local(&self, req: InsrtRequest) -> bool {
+    pub fn insert_local(&self, req: InsrtRequest){
         let map = &self.map_arr[shard_idx(&req.key)];
-        if map.contains_key(&req.key) {
-            return false;
-        }
         map.insert(req.key, req.value);
-        true
     }
 
     #[inline]

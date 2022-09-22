@@ -46,7 +46,6 @@ pub async fn test_main() -> Result<(), reqwest::Error> {
     test_update_cluster().await?;
     test_init().await?;
     test_add().await?;
-    test_add_400().await?;
     test_query().await?;
     test_list().await?;
     test_batch().await?;
@@ -127,19 +126,6 @@ pub async fn test_add() -> Result<(), reqwest::Error> {
             let req = InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string());
             let res = http_req::add(&client, host, req).await;
             assert!(res.is_ok());
-        };
-        n += ADD_COUNT / 3;
-    }
-    Ok(())
-}
-
-pub async fn test_add_400() -> Result<(), reqwest::Error> {
-    let mut n = 0;
-    for host in CLUSTER_URLS.iter() {
-        for i in n..n + ADD_COUNT / 3 {
-            let req = InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string());
-            let res = http_req::add(&client, host, req).await;
-            assert!(!res.unwrap());
         };
         n += ADD_COUNT / 3;
     }

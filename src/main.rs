@@ -66,11 +66,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::body::json())
         .and(kv.clone())
         .then(|req: InsrtRequest, kv: Arc<Store>| async move {
-            if kv.insert(req).await {
-                warp::reply::reply().into_response()
-            } else {
-                warp::reply::with_status(warp::reply::reply(), warp::http::StatusCode::BAD_REQUEST).into_response()
-            }
+            kv.insert(req).await;
+            warp::reply::reply()
         });
 
     let del = warp::path("del")
