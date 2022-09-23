@@ -21,6 +21,12 @@ pub const DEFAULT_KV_SIZE: usize = 1024 * 8;
 
 pub const CLUSTER_NUM: usize = 3;
 
+pub const TOTAL_SLOTS:usize = 3000;
+
+pub const SUB_SLOTS:usize = TOTAL_SLOTS/3;
+
+pub const MORE_CACHE:usize = 200;
+
 #[inline]
 pub fn shard_idx(s: &String) -> usize {
     if s.len() == 0 {
@@ -31,12 +37,29 @@ pub fn shard_idx(s: &String) -> usize {
 }
 
 #[inline]
-pub fn cluster_idx(s: &String) -> usize {
+pub fn cluster_idx(s: &str) -> usize {
     if s.len() == 0 {
         return 0;
     }
-    fasthash::xx::hash32(s) as usize % CLUSTER_NUM
+    let hash_code = fasthash::xx::hash32(s) as usize % TOTAL_SLOTS;
+    let mut idx = 0;
+
+    // 0=..1200
+    if  hash_code < SUB_SLOTS + MORE_CACHE {
+        idx |= 1;
+    }
+    // 1000=..2200
+    if hash_code >= SUB_SLOTS && hash_code < SUB_SLOTS*2 + MORE_CACHE {
+        idx |=2;
+    }
+
+    //2000..=2999 + 0..200
+    if hash_code >= SUB_SLOTS*2 || hash_code < MORE_CACHE {
+        idx |=4;
+    }
+    idx
 }
+
 
 pub fn read_port() -> String {
     let args: Vec<String> = env::args().collect();

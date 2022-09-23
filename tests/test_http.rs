@@ -124,7 +124,7 @@ pub async fn test_add() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
         for i in n..n + ADD_COUNT / 3 {
             let req = InsrtRequest::new("key".to_string() + &i.to_string(), "val".to_string() + &i.to_string());
-            let res = http_req::add(&client, host, req).await;
+            let res = http_req::add(&client, host, &req).await;
             assert!(res.is_ok());
         };
         n += ADD_COUNT / 3;
@@ -215,14 +215,14 @@ pub async fn test_range() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
         for i in 0..ZADD_COUNT {
             let score = ScoreRange::new(0, (ZADD_SUB_COUNT / 2) as u32);
-            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), score).await?;
+            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), &score).await?;
             if res.len() != (ZADD_SUB_COUNT / 2 + 1) as usize {
                 println!("{}", &(String::from("key") + &i.to_string()))
             }
             assert_eq!(res.len(), (ZADD_SUB_COUNT / 2 + 1) as usize);
 
             let score = ScoreRange::new(0, (ZADD_SUB_COUNT) as u32);
-            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), score).await?;
+            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), &score).await?;
             if res.len() != (ZADD_SUB_COUNT) as usize {
                 println!("{}", &(String::from("key") + &i.to_string()))
             }
@@ -241,7 +241,7 @@ pub async fn test_rmv() -> Result<(), reqwest::Error> {
     for host in CLUSTER_URLS.iter() {
         for i in 0..ZRMV_COUNT {
             let score = ScoreRange::new(0, (ZADD_SUB_COUNT / 2) as u32);
-            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), score).await?;
+            let res = http_req::range(&client, host, &(String::from("key") + &i.to_string()), &score).await?;
             assert_eq!(res.len(), (ZADD_SUB_COUNT / 2) as usize);
         }
     }

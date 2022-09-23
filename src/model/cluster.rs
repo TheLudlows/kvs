@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use lazy_static::lazy_static;
 use log::info;
-use crate::model::evn::{BASE_PATH, CLUSTER_FILE, read_port};
+use crate::model::evn::{BASE_PATH, CLUSTER_FILE, cluster_idx, read_port};
 use crate::model::request::Cluster;
 
 
@@ -80,4 +80,10 @@ pub fn conf_path() -> PathBuf {
         create_dir(&file).unwrap();
     }
     return file.join(CLUSTER_FILE);
+}
+
+pub fn in_cur_node(key : &str) -> bool{
+    let idx = cluster_idx(key);
+
+    (idx & (1 << **IDX)) != 0
 }

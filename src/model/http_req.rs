@@ -23,7 +23,7 @@ pub async fn init(client: &Client, host: &str) -> Result<String, reqwest::Error>
 }
 
 
-pub async fn add(client: &Client, host: &str, req: InsrtRequest) -> Result<(), reqwest::Error> {
+pub async fn add(client: &Client, host: &str, req: &InsrtRequest) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/add")
         .json(&req)
         .send()
@@ -90,9 +90,9 @@ pub async fn zadd(client: &Client, host: &str, key: String, sv: ScoreValue) -> R
     Ok(())
 }
 
-pub async fn range(client: &Client, host: &str, key: &String, range: ScoreRange) -> Result<Vec<ScoreValue>, reqwest::Error> {
+pub async fn range(client: &Client, host: &str, key: &String, range: &ScoreRange) -> Result<Vec<ScoreValue>, reqwest::Error> {
     let rep: Vec<ScoreValue> = client.post(String::from(host) + "/zrange/" + key)
-        .json(&range)
+        .json(range)
         .send()
         .await?
         .json()
