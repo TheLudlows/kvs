@@ -78,12 +78,12 @@ impl Store {
             let database = result.unwrap();
             let mut it = database.iter(ReadOptions::new());
             while let Some((k, v)) = it.next() {
-               // if cluster_idx(&k.0) == **IDX {
+                if cluster_idx(&k.0) == **IDX {
                     // 批量？
                     let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
                     //info!("{:?}",ins );
                     self.insert_local(ins);
-               // }
+                }
             }
             info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
         }
