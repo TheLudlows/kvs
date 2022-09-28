@@ -172,7 +172,6 @@ impl Store {
         if in_cur_node(k) {
             return self.local_get(k);
         }
-
         return None;
     }
 

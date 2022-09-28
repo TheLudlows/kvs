@@ -25,7 +25,7 @@ pub const TOTAL_SLOTS:usize = 3000;
 
 pub const SUB_SLOTS:usize = TOTAL_SLOTS/3;
 
-pub const MORE_CACHE:usize = 200;
+pub const MORE_CACHE:usize = 0;
 
 #[inline]
 pub fn shard_idx(s: &String) -> usize {
