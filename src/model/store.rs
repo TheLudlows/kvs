@@ -188,7 +188,7 @@ impl Store {
                 }
             }
         }*/
-        insert_local(req)
+        self.insert_local(req)
     }
 
     #[inline]
