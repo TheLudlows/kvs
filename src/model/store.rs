@@ -174,7 +174,7 @@ impl Store {
     }
     #[inline]
     pub async fn insert(&self, req: InsrtRequest){
-        let cluster_idx = cluster_idx(&req.key);
+       /* let cluster_idx = cluster_idx(&req.key);
         if cluster_idx == **IDX {
             self.insert_local(req);
         } else {
@@ -187,7 +187,8 @@ impl Store {
                     error!("insert kv err");
                 }
             }
-        }
+        }*/
+        insert_local(req)
     }
 
     #[inline]
@@ -198,24 +199,26 @@ impl Store {
 
     #[inline]
     pub async fn del(&self, k: &String) {
-        let cluster_idx = cluster_idx(k);
+        self.map_arr[shard_idx(&k)].remove(k);
+
+        /*let cluster_idx = cluster_idx(k);
         if cluster_idx == **IDX {
-            self.map_arr[shard_idx(&k)].remove(k);
         } else {
             match http_req::del(&self.client, &CLUSTER_URL[cluster_idx], k).await {
                 Ok(_) => {}
                 Err(_) => {
                     error!("del err")
                 }
-            }
+            }*/
         }
     }
 
     #[inline]
     pub async fn get(&self, k: &String) -> Option<String> {
-        let cluster_idx = cluster_idx(k);
+        self.local_get(k)
+        /*let cluster_idx = cluster_idx(k);
         return if cluster_idx == **IDX {
-            self.local_get(k)
+
         } else {
             //info!("get to {}, cur{}", cluster_idx, **IDX);
             match http_req::query(&self.client, &CLUSTER_URL[cluster_idx], k).await {
@@ -231,7 +234,7 @@ impl Store {
                     None
                 }
             }
-        };
+        };*/
     }
 
     pub fn local_get(&self, k: &String) -> Option<String> {
