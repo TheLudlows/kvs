@@ -96,7 +96,7 @@ impl Store {
 impl Store {
     pub async fn zset_insert(&self, k: String, v: ScoreValue) {
         let cur_id = **IDX;
-        self.do_insert(k, v);
+        self.do_insert(k.clone(), v.clone());
         for i in 0..CLUSTER_NUM {
             if i == cur_id {
                 continue;
