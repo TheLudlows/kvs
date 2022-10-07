@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(kv.clone())
         .then(|k, kv: Arc<Store>| async move {
             //info!("del key{:?}", k);
-            kv.del2(&k).await;
+            kv.del2(&k);
             return warp::reply::reply();
         });
 
@@ -175,7 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(kv.clone())
         .then(|k: String, v: String, kv: Arc<Store>| async move {
             //info!("{:?}{:?}",k, v);
-            kv.remove2(&k, &v).await;
+            kv.remove2(&k, &v);
             return warp::reply();
         });
 

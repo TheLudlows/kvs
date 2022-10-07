@@ -161,7 +161,7 @@ impl Store {
         futures::future::join_all(vec).await;
     }
 
-    pub async fn remove2(&self, k: &String, v: &String) {
+    pub fn remove2(&self, k: &String, v: &String) {
         let map = &self.zset_arr[shard_idx(&k)];
         if let Some(mut e) = map.get_mut(k) {
             if let Some(old_score) = &e.value_map.remove(v) {
