@@ -302,7 +302,7 @@ impl Store {
 
     #[inline]
     pub async fn batch_insert(&self, reqs: Vec<InsrtRequest>) {
-        batch_insert2(2);
+        self.batch_insert2(reqs.clone());
 
         let cur_id = **IDX;
 
