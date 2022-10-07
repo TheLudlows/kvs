@@ -173,7 +173,9 @@ impl Store {
     }
     #[inline]
     pub async fn insert(&self, req: InsrtRequest) {
-        let cur_id = **IDX;
+        self.insert_local(req);
+
+       /* let cur_id = **IDX;
 
         let mut v = vec![];
         for i in 0..CLUSTER_NUM {
@@ -182,8 +184,7 @@ impl Store {
             }
             v.push(http_req::add(&self.client, &CLUSTER_URL[i], req.clone()));
         }
-        self.insert_local(req);
-        futures::future::join_all(v).await;
+        futures::future::join_all(v).await;*/
     }
 
     #[inline]
@@ -196,7 +197,7 @@ impl Store {
     pub async fn del(&self, k: &String) {
         self.map_arr[shard_idx(&k)].remove(k);
 
-        let cur_id = **IDX;
+        /*let cur_id = **IDX;
 
         let mut v = vec![];
         for i in 0..CLUSTER_NUM {
@@ -205,7 +206,7 @@ impl Store {
             }
             v.push(http_req::del(&self.client, &CLUSTER_URL[i], k));
         }
-        futures::future::join_all(v).await;
+        futures::future::join_all(v).await;*/
     }
 
     #[inline]
@@ -234,6 +235,8 @@ impl Store {
                 }
             }
         }
+
+
         ret
     }
 
