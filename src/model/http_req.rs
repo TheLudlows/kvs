@@ -24,7 +24,7 @@ pub async fn init(client: &Client, host: &str) -> Result<String, reqwest::Error>
 
 
 pub async fn add(client: &Client, host: &str, req: InsrtRequest) -> Result<(), reqwest::Error> {
-    let _rep = client.post(String::from(host) + "/add")
+    let _rep = client.post(String::from(host) + "/add2")
         .json(&req)
         .send()
         .await?;
@@ -55,7 +55,7 @@ pub async fn list(client: &Client, host: &str, keys: &Vec<String>) -> Result<Vec
 }
 
 pub async fn batch(client: &Client, host: &str, req: &Vec<InsrtRequest>) -> Result<(), reqwest::Error> {
-    let _rep = client.post(String::from(host) + "/batch")
+    let _rep = client.post(String::from(host) + "/batch2")
         .json(req)
         .send()
         .await?;
@@ -79,7 +79,7 @@ pub async fn del(client: &Client, host: &str, key: &String) -> Result<(), reqwes
 }
 
 pub async fn zadd(client: &Client, host: &str, key: String, sv: ScoreValue) -> Result<(), reqwest::Error> {
-    let _rep = client.post(String::from(host) + "/zadd/" + &key)
+    let _rep = client.post(String::from(host) + "/zadd2/" + &key)
         .json(&sv)
         .send()
         .await?;

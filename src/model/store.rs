@@ -80,9 +80,9 @@ impl Store {
             while let Some((k, v)) = it.next() {
                 if cluster_idx(&k.0) == **IDX {
                     // 批量？
-                    let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
+                    //let ins = InsrtRequest::new(k.0, String::from_utf8(v).unwrap());
                     //info!("{:?}",ins );
-                    self.insert_local(ins);
+                    //self.insert_local(ins);
                 }
             }
             info!("map size {}", self.map_arr.iter().map(|m| m.len()).sum::<usize>());
@@ -95,11 +95,13 @@ impl Store {
 
 impl Store {
     pub async fn zset_insert(&self, k: String, v: ScoreValue) {
-        let cluster_idx = cluster_idx(&k);
-        if cluster_idx == **IDX {
-            self.do_insert(k, v);
-        } else {
-            match http_req::zadd(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
+        let cur_id = **IDX;
+        self.do_insert(k, v);
+        for i in 0..CLUSTER_NUM {
+            if i == cur_id {
+                continue;
+            }
+            match http_req::zadd(&self.client, &CLUSTER_URL[i], k.clone(), v.clone()).await {
                 Ok(_) => {}
                 Err(_) => {
                     error!("insert err")
@@ -112,7 +114,7 @@ impl Store {
         let map = &self.zset_arr[shard_idx(&k)];
         let mut e = map.entry(k).or_insert_with(|| SortValues::new());
 
-        if let Some(old_score)  = &e.value_map.insert(v.value.clone(), v.score) {
+        if let Some(old_score) = &e.value_map.insert(v.value.clone(), v.score) {
             if let Some(v_set) = e.score_map.get_mut(old_score) {
                 v_set.remove(&v.value);
             }
@@ -121,7 +123,6 @@ impl Store {
         let v_set = e.score_map.entry(v.score).or_insert(HashSet::new());
 
         v_set.insert(v.value);
-
     }
 
     pub fn range_Local(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
@@ -137,62 +138,69 @@ impl Store {
         ret
     }
 
-    pub async fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
-        let cluster_idx = cluster_idx(k);
-        return if cluster_idx == **IDX {
-            self.range_Local(k, range)
-        } else {
-            match http_req::range(&self.client, &CLUSTER_URL[cluster_idx], k, range).await {
-                Ok(v) => { v }
-                Err(_) => {
-                    error!("range err");
-                    Vec::new()
-                }
-            }
-        }
+    pub fn range(&self, k: &String, range: ScoreRange) -> Vec<ScoreValue> {
+        self.range_Local(k, range)
     }
 
     pub async fn remove(&self, k: &String, v: &String) {
-        let cluster_idx = cluster_idx(k);
-        if cluster_idx == **IDX {
-            let map = &self.zset_arr[shard_idx(&k)];
-            if let Some(mut e) = map.get_mut(k) {
-                if let Some(old_score) = &e.value_map.remove(v) {
-                    if let Some(v_set) = e.score_map.get_mut(old_score) {
-                        v_set.remove(v);
-                    }
-                }
-            }
-        } else {
-            match http_req::rmv(&self.client, &CLUSTER_URL[cluster_idx], k, v).await {
-                Ok(_) => {}
-                Err(_) => {
-                    error!("rmv err")
+        let map = &self.zset_arr[shard_idx(&k)];
+        if let Some(mut e) = map.get_mut(k) {
+            if let Some(old_score) = &e.value_map.remove(v) {
+                if let Some(v_set) = e.score_map.get_mut(old_score) {
+                    v_set.remove(v);
                 }
             }
         }
+        /*
+        let cur_id = **IDX;
+
+        for i in 0..CLUSTER_NUM {
+
+             if i == cur_id {
+                 continue;
+             }
+             match http_req::rmv(&self.client, &CLUSTER_URL[i], k, v).await {
+                 Ok(_) => {}
+                 Err(_) => {
+                     error!("rmv err")
+                 }
+             }
+         }*/
     }
     #[inline]
-    pub async fn insert(&self, req: InsrtRequest){
-       /* let cluster_idx = cluster_idx(&req.key);
-        if cluster_idx == **IDX {
-            self.insert_local(req);
-        } else {
-            //info!("insert to {}, cur{}", cluster_idx, **IDX);
-            match http_req::add(&self.client, &CLUSTER_URL[cluster_idx], req).await {
-                Ok(_) => {
+    pub async fn insert(&self, req: InsrtRequest) {
+        /* let cluster_idx = cluster_idx(&req.key);
+         if cluster_idx == **IDX {
+             self.insert_local(req);
+         } else {
+             //info!("insert to {}, cur{}", cluster_idx, **IDX);
+             match http_req::add(&self.client, &CLUSTER_URL[cluster_idx], req).await {
+                 Ok(_) => {
 
-                }
+                 }
+                 Err(_) => {
+                     error!("insert kv err");
+                 }
+             }
+         }*/
+        let cur_id = **IDX;
+
+        for i in 0..CLUSTER_NUM {
+            if i == cur_id {
+                continue;
+            }
+            match http_req::add(&self.client, &CLUSTER_URL[i], req.clone()).await {
+                Ok(_) => {}
                 Err(_) => {
                     error!("insert kv err");
                 }
             }
-        }*/
+        }
         self.insert_local(req)
     }
 
     #[inline]
-    pub fn insert_local(&self, req: InsrtRequest){
+    pub fn insert_local(&self, req: InsrtRequest) {
         let map = &self.map_arr[shard_idx(&req.key)];
         map.insert(req.key, req.value);
     }
@@ -244,71 +252,104 @@ impl Store {
     }
     #[inline]
     pub async fn list(&self, keys: Vec<String>) -> Vec<InsrtRequest> {
-        let mut ret = Vec::new();
-        let mut vec_group = vec![];
-        for _ in 0..CLUSTER_NUM {
-            vec_group.push(vec![]);
-        }
-
-        for k in keys {
-            let cluster_idx = cluster_idx(&k);
-            vec_group[cluster_idx].push(k);
-        }
-
-        for i in 0..vec_group.len() {
-            if vec_group[i].is_empty() {
-                continue;
-            }
-            if i == **IDX {
-                for k in vec_group[i].iter() {
-                    match self.local_get(k) {
-                        None => {}
-                        Some(v) => {
-                            ret.push(InsrtRequest::new(k.clone(), v));
-                        }
-                    }
-                }
-            } else {
-                match http_req::list(&self.client, &CLUSTER_URL[i], &vec_group[i]).await {
-                    Ok(mut res) => {
-                        while let Some(v) = res.pop() {
-                            ret.push(v)
-                        }
-                    }
-                    Err(_) => {}
+        let mut ret = vec![];
+        for k in keys.iter() {
+            match self.local_get(k) {
+                None => {}
+                Some(v) => {
+                    ret.push(InsrtRequest::new(k.clone(), v));
                 }
             }
         }
         ret
+        /* let mut ret = Vec::new();
+         let mut vec_group = vec![];
+         for _ in 0..CLUSTER_NUM {
+             vec_group.push(vec![]);
+         }
+
+         for k in keys {
+             let cluster_idx = cluster_idx(&k);
+             vec_group[cluster_idx].push(k);
+         }
+
+         for i in 0..vec_group.len() {
+             if vec_group[i].is_empty() {
+                 continue;
+             }
+             if i == **IDX {
+                 for k in vec_group[i].iter() {
+                     match self.local_get(k) {
+                         None => {}
+                         Some(v) => {
+                             ret.push(InsrtRequest::new(k.clone(), v));
+                         }
+                     }
+                 }
+             } else {
+                 match http_req::list(&self.client, &CLUSTER_URL[i], &vec_group[i]).await {
+                     Ok(mut res) => {
+                         while let Some(v) = res.pop() {
+                             ret.push(v)
+                         }
+                     }
+                     Err(_) => {}
+                 }
+             }
+         }
+         ret*/
     }
 
     #[inline]
     pub async fn batch_insert(&self, reqs: Vec<InsrtRequest>) {
-        let mut vec_group = vec![];
-        for _ in 0..CLUSTER_NUM {
-            vec_group.push(vec![]);
-        }
-        for req in reqs {
-            let cluster_idx = cluster_idx(&req.key);
-            vec_group[cluster_idx].push(req);
-        }
+        batch_insert2(2);
 
-        for i in 0..vec_group.len() {
-            if vec_group[i].is_empty() {
+        let cur_id = **IDX;
+
+        for i in 0..CLUSTER_NUM {
+            if i == cur_id {
                 continue;
             }
-            if i == **IDX {
-                for req in vec_group[i].clone() {
-                    self.insert_local(req);
-                }
-            } else {
-                match http_req::batch(&self.client, &CLUSTER_URL[i], &vec_group[i]).await {
-                    Ok(_) => {}
-                    Err(_) => {}
+            match http_req::batch(&self.client, &CLUSTER_URL[i], &reqs).await {
+                Ok(_) => {}
+                Err(_) => {
+                    error!("insert kv err");
                 }
             }
         }
     }
+
+    pub fn batch_insert2(&self, reqs: Vec<InsrtRequest>) {
+        for req in reqs.iter() {
+            self.insert_local(req.clone());
+        }
+    }
+
+
+    /*let mut vec_group = vec![];
+    for _ in 0..CLUSTER_NUM {
+        vec_group.push(vec![]);
+    }
+    for req in reqs {
+        let cluster_idx = cluster_idx(&req.key);
+        vec_group[cluster_idx].push(req);
+    }
+
+    for i in 0..vec_group.len() {
+        if vec_group[i].is_empty() {
+            continue;
+        }
+        if i == **IDX {
+            for req in vec_group[i].clone() {
+                self.insert_local(req);
+            }
+        } else {
+            match http_req::batch(&self.client, &CLUSTER_URL[i], &vec_group[i]).await {
+                Ok(_) => {}
+                Err(_) => {}
+            }
+        }
+    }*/
 }
 
 #[test]

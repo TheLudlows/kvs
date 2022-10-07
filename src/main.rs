@@ -69,6 +69,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             kv.insert(req).await;
             warp::reply::reply()
         });
+    let add2 = warp::path("add2")
+        .and(warp::body::json())
+        .and(kv.clone())
+        .then(|req: InsrtRequest, kv: Arc<Store>| async move {
+            kv.insert_local(req);
+            warp::reply::reply()
+        });
 
     let del = warp::path("del")
         .and(warp::path::param::<String>())
@@ -100,6 +107,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return warp::reply();
         });
 
+    let batch2 = warp::path("batch2")
+        .and(warp::body::json())
+        .and(kv.clone())
+        .then(|vs: Vec<InsrtRequest>, kv: Arc<Store>| async move {
+            //info!("{:?}", vs);
+            kv.batch_insert2(vs);
+            return warp::reply();
+        });
 
     let zadd = warp::path("zadd")
         .and(warp::path::param::<String>())
@@ -111,12 +126,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return warp::reply();
         });
 
+    let zadd2 = warp::path("zadd2")
+        .and(warp::path::param::<String>())
+        .and(warp::body::json())
+        .and(kv.clone())
+        .then(|k: String, v: ScoreValue, kv: Arc<Store>| async move {
+            //info!("{:?}{:?}",k, v);
+            kv.do_insert(k, v);
+            return warp::reply();
+        });
+
     let zrange = warp::path("zrange")
         .and(warp::path::param::<String>())
         .and(warp::body::json())
         .and(kv.clone())
         .and_then(|k: String, range: ScoreRange, kv: Arc<Store>| async move {
-            let res = &kv.range(&k, range).await;
+            let res = &kv.range(&k, range);
             if res.is_empty() {
                 Err(warp::reject::not_found())
             } else {
@@ -136,7 +161,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
 
     let apis = init_route.or(query).or(add).or(del)
-        .or(list).or(batch).or(zadd).or(zrange)
+        .or(list).or(batch).or(zadd).or(zrange).or(add2).or(zadd2)
         .or(zrmv).or(update);
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
