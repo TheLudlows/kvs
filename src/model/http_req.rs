@@ -68,7 +68,7 @@ pub async fn batch(client: &Client, host: &str, req: &Vec<InsrtRequest>) -> Resu
 
 
 pub async fn del(client: &Client, host: &str, key: &String) -> Result<(), reqwest::Error> {
-    let _rep = client.get(String::from(host) + "/del/" + key)
+    let _rep = client.get(String::from(host) + "/del2/" + key)
         .send()
         .await?;
 
@@ -101,7 +101,7 @@ pub async fn range(client: &Client, host: &str, key: &String, range: ScoreRange)
 }
 
 pub async fn rmv(client: &Client, host: &str, key: &String, val: &String) -> Result<(), reqwest::Error> {
-    let _rep = client.get(String::from(host) + "/zrmv/" + key + "/" + val)
+    let _rep = client.get(String::from(host) + "/zrmv2/" + key + "/" + val)
         .send()
         .await?;
 

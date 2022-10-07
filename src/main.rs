@@ -86,6 +86,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             return warp::reply::reply();
         });
 
+    let del2 = warp::path("del2")
+        .and(warp::path::param::<String>())
+        .and(kv.clone())
+        .then(|k, kv: Arc<Store>| async move {
+            //info!("del key{:?}", k);
+            kv.del2(&k).await;
+            return warp::reply::reply();
+        });
+
     let list = warp::path("list")
         .and(warp::body::json())
         .and(kv.clone())
@@ -157,6 +166,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .then(|k: String, v: String, kv: Arc<Store>| async move {
             //info!("{:?}{:?}",k, v);
             kv.remove(&k, &v).await;
+            return warp::reply();
+        });
+
+    let zrmv2 = warp::path("zrmv2")
+        .and(warp::path::param::<String>())
+        .and(warp::path::param::<String>())
+        .and(kv.clone())
+        .then(|k: String, v: String, kv: Arc<Store>| async move {
+            //info!("{:?}{:?}",k, v);
+            kv.remove2(&k, &v).await;
             return warp::reply();
         });
 
