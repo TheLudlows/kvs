@@ -180,7 +180,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         });
 
     let apis = init_route.or(query).or(add).or(del)
-        .or(list).or(batch).or(zadd).or(zrange).or(add2).or(zadd2).or(batch2)
+        .or(list).or(batch).or(zadd).or(zrange).or(add2).or(zadd2).or(batch2).or(del2).or(zrmv2)
         .or(zrmv).or(update);
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
