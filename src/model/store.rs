@@ -149,7 +149,7 @@ impl Store {
                 }
             }
         }
-       /* let cur_id = **IDX;
+        let cur_id = **IDX;
 
         let mut vec = vec![];
         for i in 0..CLUSTER_NUM {
@@ -158,7 +158,7 @@ impl Store {
             }
             vec.push(http_req::rmv(&self.client, &CLUSTER_URL[i], k, v));
         }
-        futures::future::join_all(vec).await;*/
+        futures::future::join_all(vec).await;
     }
 
     pub fn remove2(&self, k: &String, v: &String) {
@@ -173,7 +173,7 @@ impl Store {
     }
     #[inline]
     pub async fn insert(&self, req: InsrtRequest) {
-        self.insert_local(req.clone());
+        self.insert_local(req);
 
         let cur_id = **IDX;
 
