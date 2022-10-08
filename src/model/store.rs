@@ -184,7 +184,7 @@ impl Store {
             }
             v.push(http_req::add(&self.client, &CLUSTER_URL[i], req.clone()));
         }
-        futures::future::join_all(v).await;*/
+        futures::future::join_all(v).await;
     }
 
     #[inline]
