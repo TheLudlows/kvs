@@ -173,7 +173,7 @@ impl Store {
     }
     #[inline]
     pub async fn insert(&self, req: InsrtRequest) {
-        self.insert_local(req);
+        self.insert_local(req.clone());
 
         let cur_id = **IDX;
 
@@ -215,7 +215,7 @@ impl Store {
     }
 
     #[inline]
-    pub async fn get(&self, k: &String) -> Option<String> {
+    pub fn get(&self, k: &String) -> Option<String> {
         self.local_get(k)
     }
 
@@ -225,7 +225,7 @@ impl Store {
             .map(|e| e.to_string())
     }
     #[inline]
-    pub async fn list(&self, keys: Vec<String>) -> Vec<InsrtRequest> {
+    pub fn list(&self, keys: Vec<String>) -> Vec<InsrtRequest> {
         let mut ret = vec![];
         for k in keys.iter() {
             match self.local_get(k) {

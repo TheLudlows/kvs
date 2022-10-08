@@ -51,7 +51,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::path::param::<String>())
         .and(kv.clone())
         .and_then(|k, kv: Arc<Store>| async move {
-            match kv.get(&k).await {
+            match kv.get(&k) {
                 None => {
                     Err(warp::reject::not_found())
                 }
@@ -99,7 +99,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .and(warp::body::json())
         .and(kv.clone())
         .and_then(|keys: Vec<String>, kv: Arc<Store>| async move {
-            let res = &kv.list(keys).await;
+            let res = &kv.list(keys);
             if res.is_empty() {
                 Err(warp::reject::not_found())
             } else {
