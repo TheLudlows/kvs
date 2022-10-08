@@ -175,7 +175,7 @@ impl Store {
     pub async fn insert(&self, req: InsrtRequest) {
         self.insert_local(req.clone());
 
-        let cur_id = **IDX;
+        /*let cur_id = **IDX;
 
         let mut v = vec![];
         for i in 0..CLUSTER_NUM {
@@ -184,7 +184,7 @@ impl Store {
             }
             v.push(http_req::add(&self.client, &CLUSTER_URL[i], &req));
         }
-        futures::future::join_all(v).await;
+        futures::future::join_all(v).await;*/
     }
 
     #[inline]
