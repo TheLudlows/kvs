@@ -173,7 +173,7 @@ impl Store {
     }
     #[inline]
     pub async fn insert(&self, req: InsrtRequest) {
-        self.insert_local(req);
+        self.insert_local(req.clone());
 
         let cur_id = **IDX;
 
@@ -182,7 +182,7 @@ impl Store {
             if i == cur_id {
                 continue;
             }
-            v.push(http_req::add(&self.client, &CLUSTER_URL[i], req.clone()));
+            v.push(http_req::add(&self.client, &CLUSTER_URL[i], &req));
         }
         futures::future::join_all(v).await;
     }

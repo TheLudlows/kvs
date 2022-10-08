@@ -23,7 +23,7 @@ pub async fn init(client: &Client, host: &str) -> Result<String, reqwest::Error>
 }
 
 
-pub async fn add(client: &Client, host: &str, req: InsrtRequest) -> Result<(), reqwest::Error> {
+pub async fn add(client: &Client, host: &str, req: &InsrtRequest) -> Result<(), reqwest::Error> {
     let _rep = client.post(String::from(host) + "/add2")
         .json(&req)
         .send()
